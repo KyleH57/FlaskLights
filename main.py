@@ -92,16 +92,16 @@ def index():
     return siteTextData
 
 
-def worker(conn, frequency=10.0):
+def worker(conn, frequency=2.0):
     data = None
     current_section = None
     current_song_time = 0
-
+    testTime1 = 0
+    current_song_timeAPI = 0
     # array of sections
     sections = []
 
     while True:
-        loopTimeTest = time.time()
 
 
         if conn.poll():
@@ -119,21 +119,10 @@ def worker(conn, frequency=10.0):
                 print("by")
                 print(data["item"]["artists"][0]["name"])
 
-                # # this is the time since the song started playing
-                # # print(data['timestamp'])
-                #
-                # presentDate = datetime.datetime.now()
-                # unix_timestamp = int(datetime.datetime.timestamp(presentDate) * 1000)
-                # print(unix_timestamp)
-                #
-                # # Calculate the elapsed time since the API call in milliseconds
-                # elapsed_time = int(time.time() * 1000) - data['timestamp']
-                #
-                # # print elapsed time
-                # print(f'The time since the song started playing {elapsed_time} milliseconds')
-                #
-                # Current time in the song in milliseconds
-                current_song_time = data['progress_ms'] / 1000
+
+                current_song_timeAPI = data['progress_ms'] / 1000
+
+                testTime1 = time.time()
 
 
             if "sections" in data:
@@ -147,21 +136,6 @@ def worker(conn, frequency=10.0):
                 for section in sections:
                     print(section["start"])
 
-            # # print the list of sections
-            # for section in data["sections"]:
-            #     print("section" + str(data["sections"].index(section)))
-            #     print(section["start"])
-            #     print(section["duration"])
-            #     print(section["confidence"])
-
-        # #
-        # # print the currently playing section
-        # for section in sections:
-        #     if section["start"] <= current_song_time < section["start"] + section["duration"]:
-        #         print("section" + str(sections.index(section)))
-        #         #print(section["start"])
-        #         #print(section["duration"])
-        #         #print(section["confidence"])
 
 
 
@@ -172,18 +146,18 @@ def worker(conn, frequency=10.0):
                     print("section" + str(sections.index(section)))
                     current_section = sections.index(section)
 
-        current_song_time = current_song_time + 1 / frequency
+        elapsed_time = time.time() - testTime1
+
+        #print("elapsed time: " + str(elapsed_time))
+
+        current_song_time = current_song_timeAPI + elapsed_time
+
+
 
         # print the current time in the song# print
         # print the list of sections
 
         wait_for_next_iteration(frequency)
-        # endTime = time.time()
-        #
-        # elapsed_time2 = endTime - loopTimeTest
-        #
-        # print(f"Elapsed time: {elapsed_time2:.5f} seconds")
-
 
 
 
