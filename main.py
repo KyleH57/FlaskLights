@@ -1,5 +1,8 @@
+import colorsys
 import os
+import socket
 from base64 import b64encode
+import random
 
 import requests
 from flask import Flask, request, redirect, session
@@ -8,6 +11,14 @@ import json
 import multiprocessing as mp
 import time
 import datetime
+
+# LED CTRL
+import ledCtrl
+
+# Create a socket object
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+led_obj = ledCtrl.square_LED_panel(8, 10)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
@@ -70,6 +81,8 @@ def index():
 
         # print(resp.json()["item"]["name"])
         # print(resp.json()["item"]["id"])
+    elif resp.status_code == 401:
+        return redirect("/login/spotify")
     else:
         return "Request failed: " + resp.text, resp.status_code
 
@@ -92,7 +105,13 @@ def index():
     return siteTextData
 
 
-def worker(conn, frequency=2.0):
+def random_color(max_brightness):
+    h = random.random()
+    r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
+    return [int(r * 255), int(g * 255), int(b * 255)]
+
+
+def worker(conn, frequency=20.0):
     data = None
     current_section = None
     current_song_time = 0
@@ -103,9 +122,7 @@ def worker(conn, frequency=2.0):
 
     while True:
 
-
         if conn.poll():
-
 
             data = conn.recv()
 
@@ -119,25 +136,22 @@ def worker(conn, frequency=2.0):
                 print("by")
                 print(data["item"]["artists"][0]["name"])
 
-
                 current_song_timeAPI = data['progress_ms'] / 1000
 
                 testTime1 = time.time()
-
 
             if "sections" in data:
                 print("audio analysis")
 
                 # add the sections to the array
                 sections = data["sections"]
-                print(sections)
+                # print(sections)
 
-                #given the start time and duration of each section, print the start of each section
+                # print the start times of each section and the confidence on the same line
                 for section in sections:
-                    print(section["start"])
-
-
-
+                    # print(section["start"])
+                    # print(section["start"] + section["confidence"])
+                    print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
 
         # print the section if it has changed
         for section in sections:
@@ -146,19 +160,22 @@ def worker(conn, frequency=2.0):
                     print("section" + str(sections.index(section)))
                     current_section = sections.index(section)
 
+                    # generate random rgb color
+                    ledCtrl.setPanelColor(random_color(0.3), led_obj)
+
+                    # send LED data
+                    ledCtrl.sendPanelData(led_obj, client_socket)
+
         elapsed_time = time.time() - testTime1
 
-        #print("elapsed time: " + str(elapsed_time))
+        # print("elapsed time: " + str(elapsed_time))
 
         current_song_time = current_song_timeAPI + elapsed_time
-
-
 
         # print the current time in the song# print
         # print the list of sections
 
         wait_for_next_iteration(frequency)
-
 
 
 def wait_for_next_iteration(frequency):
