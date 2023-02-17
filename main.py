@@ -70,11 +70,16 @@ def index():
     }
     siteTextData = ""
 
+    local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
+
     # request to get currently playing song
     resp = requests.get("https://api.spotify.com/v1/me/player/currently-playing", headers=headers)
     if resp.status_code == 200:
         siteTextData = resp.json()["item"]["name"] + " by " + resp.json()["item"]["artists"][0][
             "name"] + " is currently playing."
+
+        # send local timestamp to worker
+        parent_conn.send(local_timestamp)
 
         # send to worker
         parent_conn.send(resp.json())
@@ -117,31 +122,45 @@ def worker(conn, frequency=20.0):
     current_song_time = 0
     testTime1 = 0
     current_song_timeAPI = 0
+    api_timestamp = 0
+
+    local_timestamp = 0
+
     # array of sections
     sections = []
 
     while True:
-
+        # check if there is data in the queue
         if conn.poll():
-
+            # get the data
             data = conn.recv()
 
+            if type(data) is int:
+                # print("local_timestamp: " + str(data))
+                local_timestamp = data
             # see if data is audio analysis or currently playing song
+            elif "item" in data:
+                # print the song name and artist
+                print(str(data["item"]["name"]) + " by " + str(data["item"]["artists"][0]["name"]))
 
-            if "item" in data:
-                # print the song name
-                print(data["item"]["name"])
+                # this is the time the song started playing in UNIX milliseconds
+                api_timestamp = data["timestamp"]
 
-                # print the artist name
-                print("by")
-                print(data["item"]["artists"][0]["name"])
+                # print api_timestamp
+                # this is the time the song started playing in UNIX milliseconds
+                print("api_timestamp: " + str(api_timestamp))
+                # print api_timestamp as a human readable time
+                print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
 
-                current_song_timeAPI = data['progress_ms'] / 1000
-
+                current_song_timeAPI = data['progress_ms'] / 1000  # current song time in seconds
+                print("current_song_timeAPI: " + str(current_song_timeAPI))
                 testTime1 = time.time()
 
-            if "sections" in data:
-                print("audio analysis")
+                #moved to main.py
+                #local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
+
+            elif "sections" in data:
+                # print("audio analysis")
 
                 # add the sections to the array
                 sections = data["sections"]
@@ -149,9 +168,24 @@ def worker(conn, frequency=20.0):
 
                 # print the start times of each section and the confidence on the same line
                 for section in sections:
-                    # print(section["start"])
-                    # print(section["start"] + section["confidence"])
                     print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
+
+        # update the current song time
+        # elapsed_time = time.time() - testTime1
+        # current_song_time = current_song_timeAPI + elapsed_time
+
+        # get current unix time in milliseconds
+        current_time = int(round(time.time() * 1000))
+        # print current_time in a human readable format
+        # print("current_time: " + str(datetime.datetime.fromtimestamp(current_time / 1000.0)))
+
+        # this calculates the time since the song
+        # started playing but does not account for starting midway though a song
+        # current_song_time = (current_time - api_timestamp) / 1000
+
+        current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
+
+        #print("current_song_time: " + str(current_song_time))
 
         # print the section if it has changed
         for section in sections:
@@ -165,15 +199,6 @@ def worker(conn, frequency=20.0):
 
                     # send LED data
                     ledCtrl.sendPanelData(led_obj, client_socket)
-
-        elapsed_time = time.time() - testTime1
-
-        # print("elapsed time: " + str(elapsed_time))
-
-        current_song_time = current_song_timeAPI + elapsed_time
-
-        # print the current time in the song# print
-        # print the list of sections
 
         wait_for_next_iteration(frequency)
 
