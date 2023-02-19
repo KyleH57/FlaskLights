@@ -72,17 +72,17 @@ def index():
 
     local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
+    currently_playing_data = ""
+    # time.sleep(3) # this causes early
+
     # request to get currently playing song
     resp = requests.get("https://api.spotify.com/v1/me/player/currently-playing", headers=headers)
     if resp.status_code == 200:
         siteTextData = resp.json()["item"]["name"] + " by " + resp.json()["item"]["artists"][0][
             "name"] + " is currently playing."
 
-        # send local timestamp to worker
-        parent_conn.send(local_timestamp)
-
-        # send to worker
-        parent_conn.send(resp.json())
+        # time.sleep(3) this has no effect on lead or lag
+        currently_playing_data = resp.json()
 
         # print(resp.json()["item"]["name"])
         # print(resp.json()["item"]["id"])
@@ -95,8 +95,9 @@ def index():
     resp = requests.get("https://api.spotify.com/v1/audio-analysis/" + resp.json()["item"]["id"], headers=headers)
     if resp.status_code == 200:
         # parent_conn.send(resp.json()["sections"])
-        parent_conn.send(resp.json())
-        # print the start times and durations of each section
+        parent_conn.send([local_timestamp, currently_playing_data, resp.json()])
+
+        # print the start times aCodend durations of each section
         for section in resp.json()["sections"]:
             # print("section" + str(resp.json()["sections"].index(section)))
             # print(section["start"])
@@ -123,6 +124,7 @@ def worker(conn, frequency=20.0):
     testTime1 = 0
     current_song_timeAPI = 0
     api_timestamp = 0
+    testVar123 = True
 
     local_timestamp = 0
 
@@ -135,40 +137,82 @@ def worker(conn, frequency=20.0):
             # get the data
             data = conn.recv()
 
-            if type(data) is int:
-                # print("local_timestamp: " + str(data))
-                local_timestamp = data
-            # see if data is audio analysis or currently playing song
-            elif "item" in data:
-                # print the song name and artist
-                print(str(data["item"]["name"]) + " by " + str(data["item"]["artists"][0]["name"]))
+            # if type(data) is int:
+            #     # print("local_timestamp: " + str(data))
+            #     local_timestamp = data
+            # # see if data is audio analysis or currently playing song
+            # if "item" in data:
+            #     # print the song name and artist
+            #     print(str(data["item"]["name"]) + " by " + str(data["item"]["artists"][0]["name"]))
+            #
+            #     # this is the time the song started playing in UNIX milliseconds
+            #     api_timestamp = data["timestamp"]
+            #
+            #     # print api_timestamp
+            #     # this is the time the song started playing in UNIX milliseconds
+            #     print("api_timestamp: " + str(api_timestamp))
+            #     # print api_timestamp as a human readable time
+            #     print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
+            #
+            #     current_song_timeAPI = data['progress_ms'] / 1000  # current song time in seconds
+            #     print("current_song_timeAPI: " + str(current_song_timeAPI))
+            #     testTime1 = time.time()
+            #
+            #     #moved to main.py
+            #     #local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
+            #
+            # if "sections" in data:
+            #     # print("audio analysis")
+            #
+            #     # add the sections to the array
+            #     sections = data["sections"]
+            #     # print(sections)
+            #
+            #     # print the start times of each section and the confidence on the same line
+            #     for section in sections:
+            #         print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
 
-                # this is the time the song started playing in UNIX milliseconds
-                api_timestamp = data["timestamp"]
+        if data is not None:
 
-                # print api_timestamp
-                # this is the time the song started playing in UNIX milliseconds
-                print("api_timestamp: " + str(api_timestamp))
-                # print api_timestamp as a human readable time
-                print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
+            # print("data: " + str(data))
+            local_timestamp = data[0]
 
-                current_song_timeAPI = data['progress_ms'] / 1000  # current song time in seconds
-                print("current_song_timeAPI: " + str(current_song_timeAPI))
-                testTime1 = time.time()
+            currently_playing_data = data[1]
 
-                #moved to main.py
-                #local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
+            # # print the song name and artist
+            # print(str(currently_playing_data["item"]["name"]) + " by " + str(
+            #     currently_playing_data["item"]["artists"][0]["name"]))
 
-            elif "sections" in data:
-                # print("audio analysis")
+            # this is the time the song started playing in UNIX milliseconds
+            api_timestamp = currently_playing_data["timestamp"]
 
-                # add the sections to the array
-                sections = data["sections"]
-                # print(sections)
+            # # print api_timestamp
+            # # this is the time the song started playing in UNIX milliseconds
+            # print("api_timestamp: " + str(api_timestamp))
+            # # print api_timestamp as a human readable time
+            # print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
 
+            current_song_timeAPI = currently_playing_data['progress_ms'] / 1000  # current song time in seconds
+            # print("current_song_timeAPI: " + str(current_song_timeAPI))
+
+            analysis_data = data[2]
+            # print("audio analysis")
+
+            # add the sections to the array
+            sections = analysis_data["sections"]
+
+            # print(sections)
+            #
+            if testVar123:
                 # print the start times of each section and the confidence on the same line
                 for section in sections:
                     print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
+                testVar123 = False
+
+            data = None
+
+        # moved to main.py
+        # local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
         # update the current song time
         # elapsed_time = time.time() - testTime1
@@ -194,13 +238,17 @@ def worker(conn, frequency=20.0):
                     print("section" + str(sections.index(section)))
                     current_section = sections.index(section)
 
+                    # print(current_song_time)
+
                     # generate random rgb color
                     ledCtrl.setPanelColor(random_color(0.3), led_obj)
 
                     # send LED data
                     ledCtrl.sendPanelData(led_obj, client_socket)
 
-        wait_for_next_iteration(frequency)
+        #wait_for_next_iteration(frequency)
+        wait_for_next_iteration_no_sleep(frequency)
+        # time.sleep(0.025)
 
 
 def wait_for_next_iteration(frequency):
@@ -208,7 +256,16 @@ def wait_for_next_iteration(frequency):
     start_time = time.perf_counter()
     elapsed_time = time.perf_counter() - start_time
     time_remaining = iteration_time - elapsed_time
+    # print("time_remaining: " + str(time_remaining))
     time.sleep(time_remaining)
+
+
+def wait_for_next_iteration_no_sleep(frequency):
+    iteration_time = 1.0 / frequency
+    start_time = time.perf_counter()
+    while True:
+        if time.perf_counter() - start_time >= iteration_time:
+            return
 
 
 if __name__ == "__main__":
