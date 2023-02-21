@@ -50,6 +50,26 @@ class square_LED_panel:
                     # initialize the math coordinates
                     self.leds[-1].initMathCoords(self.center)
 
+class led_strip:
+    def __init__(self, num_leds, spacing):
+        # spacing is the distance between the center of each LED in mm
+        self.num_leds = num_leds
+        self.spacing = spacing
+        self.leds = []
+
+        # find the center of the panel
+        self.center = (num_leds - 1) * spacing / 2
+
+        # 0,0 is the bottom left corner
+        # the LED chain starts on the bottom row and goes left to right
+        # The next row is above the first row and goes right to left
+        # and so on
+        for i in range(num_leds):
+            self.leds.append(WS2812LED(i * self.spacing, 0))
+
+            # initialize the math coordinates
+            self.leds[-1].initMathCoords(self.center)
+
 
 # function that takes a panel object and a socket object and sends the data to the panel
 def sendPanelData(led_panel, client_socket):
@@ -64,7 +84,7 @@ def sendPanelData(led_panel, client_socket):
     client_socket.sendto(binary_data, (UDP_IP, UDP_PORT))
 
 
-def sendPanelData2(socket_obj, value):
+def sendPanelData2(socket_obj, value, led_panel):
     # Example uint64_t value
     #value = 1676857643023
 
@@ -72,16 +92,22 @@ def sendPanelData2(socket_obj, value):
     byte_array = struct.pack(">Q", value)  # big endian
 
     # create a bytearray 4336 bytes long (8 bytes for time, 8 bytes reserved, 4320 bytes for data) and fill it with 0s
-    big_byte_array = bytearray(4336)
+    # big_byte_array = bytearray(4336)
+
+    big_byte_array = bytearray(16)
 
     # copy the byte_array into the big_byte_array
     big_byte_array[0:len(byte_array)] = byte_array
 
-    # set the remaining bytes to 1
-    for i in range(len(byte_array), len(big_byte_array)):
-        big_byte_array[i] = 1
+    # # set the remaining bytes to 1
+    # for i in range(len(byte_array), len(big_byte_array)):
+    #     big_byte_array[i] = 20
 
-    # print the length of the bytearray
+    for i in led_panel.leds:
+        for j in i.color:
+            big_byte_array.append(j)
+
+    # print the length of the bytearray should be 4336
     print(len(big_byte_array))
 
     # Print the bytearray

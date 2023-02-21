@@ -18,7 +18,8 @@ import ledCtrl
 # Create a socket object
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-led_obj = ledCtrl.square_LED_panel(8, 10)
+#led_obj = ledCtrl.square_LED_panel(8, 10)
+led_obj = ledCtrl.led_strip(1440, 10)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
@@ -117,6 +118,17 @@ def random_color(max_brightness):
     return [int(r * 255), int(g * 255), int(b * 255)]
 
 
+def next_color(max_brightness, last_color):
+    # convert last color to hsv
+    last_color = colorsys.rgb_to_hsv(last_color[0] / 255, last_color[1] / 255, last_color[2] / 255)
+    h_old = last_color[0]
+    h = h_old + random.randrange(13, 43) / 100
+    if h > 1:
+        h -= 1
+    r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
+    return [int(r * 255), int(g * 255), int(b * 255)]
+
+
 def worker(conn, frequency=20.0):
     data = None
     current_section = None
@@ -125,6 +137,8 @@ def worker(conn, frequency=20.0):
     current_song_timeAPI = 0
     api_timestamp = 0
     testVar123 = True
+
+    color = [255, 0, 0]
 
     local_timestamp = 0
 
@@ -137,45 +151,7 @@ def worker(conn, frequency=20.0):
             # get the data
             data = conn.recv()
 
-            # if type(data) is int:
-            #     # print("local_timestamp: " + str(data))
-            #     local_timestamp = data
-            # # see if data is audio analysis or currently playing song
-            # if "item" in data:
-            #     # print the song name and artist
-            #     print(str(data["item"]["name"]) + " by " + str(data["item"]["artists"][0]["name"]))
-            #
-            #     # this is the time the song started playing in UNIX milliseconds
-            #     api_timestamp = data["timestamp"]
-            #
-            #     # print api_timestamp
-            #     # this is the time the song started playing in UNIX milliseconds
-            #     print("api_timestamp: " + str(api_timestamp))
-            #     # print api_timestamp as a human readable time
-            #     print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
-            #
-            #     current_song_timeAPI = data['progress_ms'] / 1000  # current song time in seconds
-            #     print("current_song_timeAPI: " + str(current_song_timeAPI))
-            #     testTime1 = time.time()
-            #
-            #     #moved to main.py
-            #     #local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
-            #
-            # if "sections" in data:
-            #     # print("audio analysis")
-            #
-            #     # add the sections to the array
-            #     sections = data["sections"]
-            #     # print(sections)
-            #
-            #     # print the start times of each section and the confidence on the same line
-            #     for section in sections:
-            #         print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
-
         if data is not None:
-
-
-
 
             # print("data: " + str(data))
             local_timestamp = data[0]
@@ -196,7 +172,7 @@ def worker(conn, frequency=20.0):
             # print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
 
             current_song_timeAPI = currently_playing_data['progress_ms'] / 1000  # current song time in seconds
-            #print("current_song_timeAPI: " + str(current_song_timeAPI))
+            # print("current_song_timeAPI: " + str(current_song_timeAPI))
 
             analysis_data = data[2]
             # print("audio analysis")
@@ -211,7 +187,6 @@ def worker(conn, frequency=20.0):
                 for section in sections:
                     print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
                 testVar123 = False
-
 
             time_offset = -1000
             current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
@@ -238,8 +213,12 @@ def worker(conn, frequency=20.0):
 
             socket_obj = ledCtrl.tcp_connect()
 
-            ledCtrl.sendPanelData2(socket_obj, next_start_time_ms)
-            #ledCtrl.sendPanelData2(socket_obj, next_start_time_ms + 3000)
+            color = next_color(0.5, color)
+
+            ledCtrl.setPanelColor(color, led_obj)
+
+            ledCtrl.sendPanelData2(socket_obj, next_start_time_ms, led_obj)
+            # ledCtrl.sendPanelData2(socket_obj, next_start_time_ms + 3000)
 
             ledCtrl.tcp_disconnect(socket_obj)
 
@@ -257,9 +236,8 @@ def worker(conn, frequency=20.0):
         # print current_time in a human readable format
         # print("current_time: " + str(datetime.datetime.fromtimestamp(current_time / 1000.0)))
 
-
         current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
-        #print("current_song_time: " + str(current_song_time))
+        # print("current_song_time: " + str(current_song_time))
 
         # print the section if it has changed
         for section in sections:
@@ -276,7 +254,7 @@ def worker(conn, frequency=20.0):
                     # send LED data
                     ledCtrl.sendPanelData(led_obj, client_socket)
 
-        #wait_for_next_iteration(frequency)
+        # wait_for_next_iteration(frequency)
         wait_for_next_iteration_no_sleep(frequency)
         # time.sleep(0.025)
 
