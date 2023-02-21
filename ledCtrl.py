@@ -1,5 +1,6 @@
 import socket
 import time
+import struct
 
 
 # class for a WS2812 LED
@@ -58,9 +59,53 @@ def sendPanelData(led_panel, client_socket):
             binary_data.append(j)
 
     # Print sending data
-    #print("Sending data...")
-    #print(binary_data)
+    # print("Sending data...")
+    # print(binary_data)
     client_socket.sendto(binary_data, (UDP_IP, UDP_PORT))
+
+
+def sendPanelData2(socket_obj, value):
+    # Example uint64_t value
+    #value = 1676857643023
+
+    # Pack the value into a bytearray using the "Q" format code for unsigned long long (8 bytes)
+    byte_array = struct.pack(">Q", value)  # big endian
+
+    # create a bytearray 4336 bytes long (8 bytes for time, 8 bytes reserved, 4320 bytes for data) and fill it with 0s
+    big_byte_array = bytearray(4336)
+
+    # copy the byte_array into the big_byte_array
+    big_byte_array[0:len(byte_array)] = byte_array
+
+    # set the remaining bytes to 1
+    for i in range(len(byte_array), len(big_byte_array)):
+        big_byte_array[i] = 1
+
+    # print the length of the bytearray
+    print(len(big_byte_array))
+
+    # Print the bytearray
+    # print(big_byte_array)
+
+    # send the message
+    socket_obj.send(big_byte_array)
+
+
+def tcp_connect():
+    # specify the server's IP address and port number
+    server_address = ('192.168.0.123', 80)
+
+    # create a TCP socket object
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # connect to the server
+    client_socket.connect(server_address)
+
+    return client_socket
+
+
+def tcp_disconnect(client_socket):
+    client_socket.close()
 
 
 # set the color of all LEDs in the panel
@@ -107,12 +152,12 @@ def drawAnimatedRing(x, y, radius, width, color, frame_rate, duration, led_panel
     setPanelColor([0, 0, 0], led_panel)
     sendPanelData(led_panel, client_socket)
 
-#function that takes a list and turns on leds on each column based on the number in the list
-#draw every other column in reverse
-#draw the columns in reverse order
-def drawColumns(columnList, led_panel, client_socket, color):
 
-    #reverse the list
+# function that takes a list and turns on leds on each column based on the number in the list
+# draw every other column in reverse
+# draw the columns in reverse order
+def drawColumns(columnList, led_panel, client_socket, color):
+    # reverse the list
     columnList.reverse()
 
     for i in range(len(columnList)):
@@ -124,16 +169,17 @@ def drawColumns(columnList, led_panel, client_socket, color):
                 led_panel.leds[i * led_panel.num_leds_side + led_panel.num_leds_side - j - 1].setColor(color)
     sendPanelData(led_panel, client_socket)
 
-#function to clear the panel
+
+# function to clear the panel
 def clearPanel(led_panel, client_socket):
     setPanelColor([0, 0, 0], led_panel)
     sendPanelData(led_panel, client_socket)
 
-#DO NOT DELETE
+
+# DO NOT DELETE
 UDP_IP = "192.168.0.140"
 UDP_PORT = 4210
-#END DO NOT DELETE
-
+# END DO NOT DELETE
 
 
 #

@@ -174,6 +174,9 @@ def worker(conn, frequency=20.0):
 
         if data is not None:
 
+
+
+
             # print("data: " + str(data))
             local_timestamp = data[0]
 
@@ -193,7 +196,7 @@ def worker(conn, frequency=20.0):
             # print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
 
             current_song_timeAPI = currently_playing_data['progress_ms'] / 1000  # current song time in seconds
-            # print("current_song_timeAPI: " + str(current_song_timeAPI))
+            #print("current_song_timeAPI: " + str(current_song_timeAPI))
 
             analysis_data = data[2]
             # print("audio analysis")
@@ -209,6 +212,37 @@ def worker(conn, frequency=20.0):
                     print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
                 testVar123 = False
 
+
+            time_offset = -1000
+            current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
+
+            current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
+
+            # Find the start time of the next section
+            for section in sections:
+                if section["start"] <= current_song_time < section["start"] + section["duration"]:
+                    print("section" + str(sections.index(section)))
+                    current_section = section
+                    break
+            next_start_time = current_section["start"] + current_section["duration"]
+
+            # Find the time until the next section
+            time_until_next_section = next_start_time - current_song_time
+            print("time_until_next_section: " + str(time_until_next_section))
+
+            time_until_next_section_ms = int(time_until_next_section * 1000)
+            print("time_until_next_section_ms: " + str(time_until_next_section_ms))
+
+            next_start_time_ms = time_until_next_section_ms + current_time + time_offset
+            print("next_start_time_ms: " + str(next_start_time_ms))
+
+            socket_obj = ledCtrl.tcp_connect()
+
+            ledCtrl.sendPanelData2(socket_obj, next_start_time_ms)
+            #ledCtrl.sendPanelData2(socket_obj, next_start_time_ms + 3000)
+
+            ledCtrl.tcp_disconnect(socket_obj)
+
             data = None
 
         # moved to main.py
@@ -223,12 +257,8 @@ def worker(conn, frequency=20.0):
         # print current_time in a human readable format
         # print("current_time: " + str(datetime.datetime.fromtimestamp(current_time / 1000.0)))
 
-        # this calculates the time since the song
-        # started playing but does not account for starting midway though a song
-        # current_song_time = (current_time - api_timestamp) / 1000
 
         current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
-
         #print("current_song_time: " + str(current_song_time))
 
         # print the section if it has changed
