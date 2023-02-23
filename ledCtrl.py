@@ -86,7 +86,7 @@ def sendPanelData(led_panel, client_socket):
 
 def sendPanelData2(socket_obj, value, led_panel):
     # Example uint64_t value
-    #value = 1676857643023
+    # value = 1676857643023
 
     # Pack the value into a bytearray using the "Q" format code for unsigned long long (8 bytes)
     byte_array = struct.pack(">Q", value)  # big endian
@@ -108,7 +108,7 @@ def sendPanelData2(socket_obj, value, led_panel):
             big_byte_array.append(j)
 
     # print the length of the bytearray should be 4336
-    print(len(big_byte_array))
+    # print(len(big_byte_array))
 
     # Print the bytearray
     # print(big_byte_array)
@@ -116,6 +116,19 @@ def sendPanelData2(socket_obj, value, led_panel):
     # send the message
     socket_obj.send(big_byte_array)
 
+    return
+
+def check_queue(socket_obj):
+    print("Checking queue...")
+
+    # receive data back
+    data = socket_obj.recv(1)
+
+    # convert from bytes to int
+    data = int.from_bytes(data, byteorder='big')
+
+    print("Finished checking queue.")
+    return data
 
 def tcp_connect():
     # specify the server's IP address and port number

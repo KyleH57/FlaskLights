@@ -131,12 +131,20 @@ def next_color(max_brightness, last_color):
 
 def worker(conn, frequency=20.0):
     data = None
+    data_old = None
     current_section = None
-    current_song_time = 0
+    current_song_time = 0 # time in seconds
     testTime1 = 0
     current_song_timeAPI = 0
     api_timestamp = 0
     testVar123 = True
+    num_in_queue = 0
+    # scheduled_frame_time = 0
+    render_song_time = 0 # time in seconds
+    time_offset = -1000 # time in milliseconds
+    song_playing = False
+    queue_slots_open = 5
+
 
     color = [255, 0, 0]
 
@@ -145,13 +153,16 @@ def worker(conn, frequency=20.0):
     # array of sections
     sections = []
 
+    socket_obj = ledCtrl.tcp_connect()
+
     while True:
         # check if there is data in the queue
         if conn.poll():
             # get the data
             data = conn.recv()
 
-        if data is not None:
+        if data is not data_old:
+            song_playing = True
 
             # print("data: " + str(data))
             local_timestamp = data[0]
@@ -180,83 +191,86 @@ def worker(conn, frequency=20.0):
             # add the sections to the array
             sections = analysis_data["sections"]
 
-            # print(sections)
-            #
-            if testVar123:
-                # print the start times of each section and the confidence on the same line
-                for section in sections:
-                    print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
-                testVar123 = False
+            # print the start times and durations of each section
+            for section in sections:
+                print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
 
-            time_offset = -1000
+
+
             current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
             current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
 
-            # Find the start time of the next section
-            for section in sections:
-                if section["start"] <= current_song_time < section["start"] + section["duration"]:
-                    print("section" + str(sections.index(section)))
-                    current_section = section
-                    break
-            next_start_time = current_section["start"] + current_section["duration"]
+            data_old = data
+
+            # # Find the start time of the next section
+            # for section in sections:
+            #     if section["start"] <= current_song_time < section["start"] + section["duration"]:
+            #         print("section" + str(sections.index(section)))
+            #         current_section = section
+            #         break
+            # next_start_time = current_section["start"] + current_section["duration"]
 
             # Find the time until the next section
-            time_until_next_section = next_start_time - current_song_time
-            print("time_until_next_section: " + str(time_until_next_section))
+            # time_until_next_section = next_start_time - current_song_time
+            # print("time_until_next_section: " + str(time_until_next_section))
 
-            time_until_next_section_ms = int(time_until_next_section * 1000)
-            print("time_until_next_section_ms: " + str(time_until_next_section_ms))
+            # time_until_next_section_ms = int(time_until_next_section * 1000)
+            # print("time_until_next_section_ms: " + str(time_until_next_section_ms))
 
-            next_start_time_ms = time_until_next_section_ms + current_time + time_offset
-            print("next_start_time_ms: " + str(next_start_time_ms))
+            # next_start_time_ms = time_until_next_section_ms + current_time + time_offset
+            # print("next_start_time_ms: " + str(next_start_time_ms))
 
-            socket_obj = ledCtrl.tcp_connect()
 
-            color = next_color(0.5, color)
 
-            ledCtrl.setPanelColor(color, led_obj)
+            # color = next_color(0.5, color)
+            #
+            # ledCtrl.setPanelColor(color, led_obj)
 
-            ledCtrl.sendPanelData2(socket_obj, next_start_time_ms, led_obj)
+            # ledCtrl.sendPanelData2(socket_obj, next_start_time_ms, led_obj)
             # ledCtrl.sendPanelData2(socket_obj, next_start_time_ms + 3000)
 
-            ledCtrl.tcp_disconnect(socket_obj)
-
-            data = None
-
-        # moved to main.py
-        # local_timestamp = int(round(time.time() * 1000))  # current time in UNIX milliseconds
-
-        # update the current song time
-        # elapsed_time = time.time() - testTime1
-        # current_song_time = current_song_timeAPI + elapsed_time
-
-        # get current unix time in milliseconds
-        current_time = int(round(time.time() * 1000))
-        # print current_time in a human readable format
-        # print("current_time: " + str(datetime.datetime.fromtimestamp(current_time / 1000.0)))
-
-        current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
-        # print("current_song_time: " + str(current_song_time))
 
         # print the section if it has changed
         for section in sections:
-            if section["start"] <= current_song_time < section["start"] + section["duration"]:
+            if section["start"] <= render_song_time < section["start"] + section["duration"]:
                 if current_section != sections.index(section):
-                    print("section" + str(sections.index(section)))
-                    current_section = sections.index(section)
+                    # print("section" + str(sections.index(section)))
+                    # current_section = sections.index(section)
 
                     # print(current_song_time)
 
                     # generate random rgb color
                     ledCtrl.setPanelColor(random_color(0.3), led_obj)
 
-                    # send LED data
-                    ledCtrl.sendPanelData(led_obj, client_socket)
 
-        # wait_for_next_iteration(frequency)
-        wait_for_next_iteration_no_sleep(frequency)
-        # time.sleep(0.025)
+        # this needs to be in UNIX ms
+        scheduled_frame_time = int((current_song_time + render_song_time) * 1000) + local_timestamp + time_offset # something is wrong here
+
+
+
+        #("Queue Slots Open: " + str(queue_slots_open))
+        if song_playing and queue_slots_open > 0:
+
+            print("sending data")
+            print("scheduled_frame_time: " + str(scheduled_frame_time) + " current_song_time: " + str(
+                current_song_time) + " render_song_time: " + str(render_song_time))
+            ledCtrl.sendPanelData2(socket_obj, scheduled_frame_time, led_obj)
+
+            queue_slots_open = ledCtrl.check_queue(socket_obj)
+
+            print("queue_slots_open: " + str(queue_slots_open))
+
+            # update the render song time
+            render_song_time = current_song_time + 1.0 / frequency
+
+
+
+
+
+
+
+
 
 
 def wait_for_next_iteration(frequency):
