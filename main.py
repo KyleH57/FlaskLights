@@ -153,7 +153,30 @@ def worker(conn, frequency=20.0):
     # array of sections
     sections = []
 
+    print("SPECIAL TEST")
+
+    HOST = '192.168.0.113'  # Symbolic name meaning all available interfaces
+    PORT = 80  # Arbitrary non-privileged port
+
+    time.sleep(0.1)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, PORT))
+        s.listen(1)
+        print('Server listening on port', PORT)
+        conn, addr = s.accept()
+        with conn:
+            print('Connected by', addr)
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                print('Received:', data.decode())
+                conn.sendall('Thanks for the message'.encode())
+
     socket_obj = ledCtrl.tcp_connect()
+
+    print("connected to socket")
 
     while True:
         # check if there is data in the queue
@@ -163,6 +186,7 @@ def worker(conn, frequency=20.0):
 
         if data is not data_old:
             song_playing = True
+
 
             # print("data: " + str(data))
             local_timestamp = data[0]
@@ -199,70 +223,65 @@ def worker(conn, frequency=20.0):
 
             current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
-            current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
-
+            current_song_time = (current_time - local_timestamp + time_offset) / 1000 + current_song_timeAPI
+            render_song_time = current_song_time
             data_old = data
 
-            # # Find the start time of the next section
-            # for section in sections:
-            #     if section["start"] <= current_song_time < section["start"] + section["duration"]:
-            #         print("section" + str(sections.index(section)))
-            #         current_section = section
-            #         break
-            # next_start_time = current_section["start"] + current_section["duration"]
+            # send dummy frame
+            ledCtrl.sendPanelData3(1676857643023, led_obj)
 
-            # Find the time until the next section
-            # time_until_next_section = next_start_time - current_song_time
-            # print("time_until_next_section: " + str(time_until_next_section))
+            #socket_obj.close()
+            time.sleep(10)
 
-            # time_until_next_section_ms = int(time_until_next_section * 1000)
-            # print("time_until_next_section_ms: " + str(time_until_next_section_ms))
+        # end
 
-            # next_start_time_ms = time_until_next_section_ms + current_time + time_offset
-            # print("next_start_time_ms: " + str(next_start_time_ms))
+        current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
-
-
-            # color = next_color(0.5, color)
-            #
-            # ledCtrl.setPanelColor(color, led_obj)
-
-            # ledCtrl.sendPanelData2(socket_obj, next_start_time_ms, led_obj)
-            # ledCtrl.sendPanelData2(socket_obj, next_start_time_ms + 3000)
-
-
+        # print("Render song time: " + str(render_song_time))
         # print the section if it has changed
         for section in sections:
             if section["start"] <= render_song_time < section["start"] + section["duration"]:
                 if current_section != sections.index(section):
                     # print("section" + str(sections.index(section)))
-                    # current_section = sections.index(section)
+                    current_section = sections.index(section)
 
                     # print(current_song_time)
 
                     # generate random rgb color
                     ledCtrl.setPanelColor(random_color(0.3), led_obj)
-
-
-        # this needs to be in UNIX ms
-        scheduled_frame_time = int((current_song_time + render_song_time) * 1000) + local_timestamp + time_offset # something is wrong here
+                    print("Changing color, render_song_time: " + str(render_song_time))
 
 
 
-        #("Queue Slots Open: " + str(queue_slots_open))
+        if song_playing:
+
+            # this needs to be in UNIX ms
+            scheduled_frame_time = current_time + int((render_song_time - current_song_time) * 1000)  # something is wrong here
+            current_song_time = (current_time - local_timestamp + time_offset) / 1000 + current_song_timeAPI
+
+        queue_slots_open = ledCtrl.check_queue(socket_obj)
+
+        # print("Queue Slots Open: " + str(queue_slots_open))
         if song_playing and queue_slots_open > 0:
 
             print("sending data")
             print("scheduled_frame_time: " + str(scheduled_frame_time) + " current_song_time: " + str(
                 current_song_time) + " render_song_time: " + str(render_song_time))
+
             ledCtrl.sendPanelData2(socket_obj, scheduled_frame_time, led_obj)
 
-            queue_slots_open = ledCtrl.check_queue(socket_obj)
 
-            print("queue_slots_open: " + str(queue_slots_open))
+
+            # print("queue_slots_open: " + str(queue_slots_open))
 
             # update the render song time
-            render_song_time = current_song_time + 1.0 / frequency
+            render_song_time = render_song_time + 1.0 / frequency
+
+        if current_song_time > 300:
+            break
+    # end while
+    print("closing socket")
+    socket_obj.close()
 
 
 

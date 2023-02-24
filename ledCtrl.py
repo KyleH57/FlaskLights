@@ -50,6 +50,7 @@ class square_LED_panel:
                     # initialize the math coordinates
                     self.leds[-1].initMathCoords(self.center)
 
+
 class led_strip:
     def __init__(self, num_leds, spacing):
         # spacing is the distance between the center of each LED in mm
@@ -85,6 +86,8 @@ def sendPanelData(led_panel, client_socket):
 
 
 def sendPanelData2(socket_obj, value, led_panel):
+    # print("Send data: " + str(value))
+    socket_obj.settimeout(0.5)
     # Example uint64_t value
     # value = 1676857643023
 
@@ -118,17 +121,72 @@ def sendPanelData2(socket_obj, value, led_panel):
 
     return
 
+def sendPanelData3(value, led_panel):
+    # specify the server's IP address and port number
+    server_address = ('192.168.0.123', 80)
+
+    # create a TCP socket object
+    socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # connect to the server
+    socket_obj.connect(server_address)
+    print("tcp_connect: Connected to server")
+
+    # print("Send data: " + str(value))
+    socket_obj.settimeout(0.5)
+    # Example uint64_t value
+    # value = 1676857643023
+
+    # Pack the value into a bytearray using the "Q" format code for unsigned long long (8 bytes)
+    byte_array = struct.pack(">Q", value)  # big endian
+
+    # create a bytearray 4336 bytes long (8 bytes for time, 8 bytes reserved, 4320 bytes for data) and fill it with 0s
+    # big_byte_array = bytearray(4336)
+
+    big_byte_array = bytearray(16)
+
+    # copy the byte_array into the big_byte_array
+    big_byte_array[0:len(byte_array)] = byte_array
+
+    # # set the remaining bytes to 1
+    # for i in range(len(byte_array), len(big_byte_array)):
+    #     big_byte_array[i] = 20
+
+    for i in led_panel.leds:
+        for j in i.color:
+            big_byte_array.append(j)
+
+    # print the length of the bytearray should be 4336
+    # print(len(big_byte_array))
+
+    # Print the bytearray
+    # print(big_byte_array)
+
+    # send the message
+    print("Sending data...")
+    socket_obj.send(big_byte_array)
+
+    return
+
 def check_queue(socket_obj):
-    print("Checking queue...")
+    # print("Checking queue...")
+    socket_obj.settimeout(0.01)
 
-    # receive data back
-    data = socket_obj.recv(1)
+    # try catch to receive data back
+    try:
+        data = socket_obj.recv(1)
+        # convert from bytes to int
+        data = int.from_bytes(data, byteorder='big')
 
-    # convert from bytes to int
-    data = int.from_bytes(data, byteorder='big')
+        # print("Finished checking queue.")
 
-    print("Finished checking queue.")
-    return data
+        return data
+
+    except TimeoutError:
+        # print("No data received")
+
+        return 0
+
 
 def tcp_connect():
     # specify the server's IP address and port number
@@ -139,6 +197,7 @@ def tcp_connect():
 
     # connect to the server
     client_socket.connect(server_address)
+    print("tcp_connect: Connected to server")
 
     return client_socket
 
