@@ -166,13 +166,21 @@ def worker(conn, frequency=20.0):
         print('Server listening on port', PORT)
         conn, addr = s.accept()
         with conn:
+            conn.settimeout(0.1)
             print('Connected by', addr)
             while True:
-                data = conn.recv(1024)
+                # print("waiting for data")
+                try:
+                    data = conn.recv(30)
+                    print("Data raw: " + str(data))
+                    conn.sendall('Thanks for the message'.encode())
+                except TimeoutError:
+                    continue
+
                 if not data:
                     break
-                print('Received:', data.decode())
-                conn.sendall('Thanks for the message'.encode())
+                #print('Received:', data.decode())
+
 
     socket_obj = ledCtrl.tcp_connect()
 
