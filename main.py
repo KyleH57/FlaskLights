@@ -14,6 +14,9 @@ import datetime
 
 import math
 
+# check if the OS is windows
+import sys
+
 import board
 import neopixel
 
@@ -36,6 +39,7 @@ SPOTIFY_CLIENT_ID = "fdeab218fc904db89d4f1d278f268002"
 # with open("config.cfg", "r") as f:
 # SPOTIFY_CLIENT_SECRET = f.read()
 SPOTIFY_CLIENT_SECRET = "85cfcaceb90b4ae9af8a9226bbc41a90"
+
 SPOTIFY_REDIRECT_URI = "http://192.168.0.152:5000/callback"
 SPOTIFY_AUTHORIZATION_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -153,6 +157,13 @@ def worker(conn, frequency=20.0):
     current_section_duration = 1
     current_section_start = 0
     song_playing = False
+    current_beat = None
+    beat_even = False
+
+    current_segment = None
+    segment_color = [255, 0, 0]
+    segment_timbre = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 12 values
+    current_segment_index = 0
 
     bg_color = [255, 0, 0]
 
@@ -160,6 +171,9 @@ def worker(conn, frequency=20.0):
 
     # array of sections
     sections = []
+
+    # array of beats
+    beats = []
 
     while True:
         # get the time the loop started
@@ -189,6 +203,98 @@ def worker(conn, frequency=20.0):
 
             # add the sections to the array
             sections = analysis_data["sections"]
+
+            # add beat data to the array
+            beats = analysis_data["beats"]
+
+            # print the length of the beats array
+            # print("beats length: " + str(len(beats)))
+
+            # add segment data to the array
+            segments = analysis_data["segments"]
+
+            print(segments[0]["timbre"])
+
+            # create a new array of segments with the timbre data
+            X_list = []
+            for segment in segments:
+                X_list.append(segment["timbre"])
+
+            import numpy as np
+            import matplotlib.pyplot as plt
+            from sklearn.preprocessing import StandardScaler
+            from minisom import MiniSom
+
+            # Convert the list to a numpy array
+            X = np.array(X_list)
+
+            # Standardize the data to have zero mean and unit variance
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
+
+            # Set the dimensions of the SOM
+            map_width = 20
+            map_height = 20
+            input_len = X_scaled.shape[1]
+
+            # Initialize the SOM
+            som = MiniSom(map_width, map_height, input_len, sigma=0.5, learning_rate=0.5)
+
+            # Train the SOM
+            som.pca_weights_init(X_scaled)
+            som.train_random(X_scaled, 1000)  # number of training iterations
+
+            # Assign each sound vector to a cluster
+            cluster_labels = np.zeros(X.shape[0], dtype=int)
+            for i, x in enumerate(X_scaled):
+                cluster_labels[i] = som.winner(x)[0]
+
+            # Print the number of clusters
+            num_clusters = len(np.unique(cluster_labels))
+            print("Number of clusters:", num_clusters)
+
+            # Count the number of vectors in each cluster
+            unique_labels, counts = np.unique(cluster_labels, return_counts=True)
+            label_counts = dict(zip(unique_labels, counts))
+
+            # Print the top n largest clusters with at least m vectors
+            n = 5  # number of largest clusters to print
+            m = 10  # minimum number of vectors per cluster
+            sorted_counts = sorted(label_counts.items(), key=lambda x: x[1], reverse=True)
+            top_n_clusters = [x[0] for x in sorted_counts[:n]]
+            for cluster_label in top_n_clusters:
+                if label_counts[cluster_label] >= m:
+                    print("Cluster", cluster_label, "has", label_counts[cluster_label], "vectors")
+
+            # Generate a list that corresponds to the top n clusters
+            cluster_list = [-1] * len(segments)
+            for i, segment in enumerate(segments):
+                if cluster_labels[i] in top_n_clusters and label_counts[cluster_labels[i]] >= m:
+                    cluster_list[i] = cluster_labels[i]
+
+            # print the length of the segments array
+            print("segments length: " + str(len(segments)))
+
+            # print the list
+            print("Cluster list:")
+            print(cluster_list)
+
+            # print the length of the cluster list
+            print("cluster list length: " + str(len(cluster_list)))
+
+            print(top_n_clusters)
+
+            timbre_colors = []
+            for i in range(20):
+                timbre_colors.append(random_color(1.0))
+
+            print(timbre_colors)
+
+
+
+
+
+
 
             # print(sections)
             #
@@ -228,15 +334,22 @@ def worker(conn, frequency=20.0):
                     bg_color = next_color(0.5, bg_color)
                     pixels1.fill(bg_color)
 
+
+
+
+
         if song_playing:
 
             section_progress = (current_song_time - current_section_start) / current_section_duration
 
+            # there is a bug where at the beginning of the next song, section_progress is above 1, this is becase
+            # the variables are not reset when the song changes
+
             # check if the progress is greater than 1 or less than 0
             if section_progress > 1:
-                print("Section progress: " + str(section_progress) + " current_section_start: " + str(
-                    current_section_start) + " current_song_time: " + str(
-                    current_song_time) + " current_section_duration: " + str(current_section_duration))
+                # print("Section progress: " + str(section_progress) + " current_section_start: " + str(
+                #     current_section_start) + " current_song_time: " + str(
+                #     current_song_time) + " current_section_duration: " + str(current_section_duration))
                 section_progress = 0
             elif section_progress < 0:
                 print("Section progress: " + str(section_progress) + " current_section_start: " + str(
@@ -246,6 +359,56 @@ def worker(conn, frequency=20.0):
 
 
             progress_bar_2(section_progress, pixels1, [255, 255, 255], bg_color, 90, 3)
+
+            # print the beat if it has changed
+            for beat in beats:
+                if beat["start"] <= current_song_time < beat["start"] + beat["duration"]:
+                    if current_beat != beats.index(beat):
+                        # print("beat" + str(beats.index(beat)))
+                        current_beat = beats.index(beat)
+                        current_beat_duration = beat["duration"]
+                        current_beat_start = beat["start"]
+
+                        beat_even = not beat_even
+
+            if beat_even:
+                pixels1[10] = [0, 255, 0]
+                pixels1[11] = [0, 255, 0]
+                pixels1[12] = [0, 0, 255]
+                pixels1[13] = [0, 0, 255]
+            else:
+                pixels1[10] = [0, 0, 255]
+                pixels1[11] = [0, 0, 255]
+                pixels1[12] = [0, 255, 0]
+                pixels1[13] = [0, 255, 0]
+
+            # print the segment if it has changed
+            for segment in segments:
+                if segment["start"] <= current_song_time < segment["start"] + segment["duration"]:
+                    if current_segment != segments.index(segment):
+
+                        current_segment = segments.index(segment)
+                        current_segment_duration = segment["duration"]
+                        current_segment_start = segment["start"]
+
+                        current_segment_index = segments.index(segment)
+
+            #print("current_segment_index: " + str(current_segment_index))
+
+            #print(cluster_list[current_segment_index])
+
+            if cluster_list[current_segment_index] != -1:
+                pixels1[6] = timbre_colors[cluster_list[current_segment_index]]
+                pixels1[7] = timbre_colors[cluster_list[current_segment_index]]
+                pixels1[8] = timbre_colors[cluster_list[current_segment_index]]
+
+
+
+
+
+
+
+
 
             pixels1.show()
 
@@ -303,5 +466,6 @@ if __name__ == "__main__":
 
     print("Proc started")
 
-    # this is blocking
+
     app.run(host='192.168.0.152', port=5000)
+
