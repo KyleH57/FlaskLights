@@ -20,7 +20,7 @@ import sys
 import board
 import neopixel
 
-pixels1 = neopixel.NeoPixel(board.D18, 90, brightness=0.5, auto_write=False)
+pixels1 = neopixel.NeoPixel(board.D18, 180, brightness=0.5, auto_write=False)
 # LED CTRL
 # import ledCtrl
 
@@ -164,6 +164,8 @@ def worker(conn, frequency=20.0):
     segment_color = [255, 0, 0]
     segment_timbre = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 12 values
     current_segment_index = 0
+    current_segment_SOM_coords = [0, 0]
+    SOM_stuff_idk = []
 
     bg_color = [255, 0, 0]
 
@@ -186,6 +188,8 @@ def worker(conn, frequency=20.0):
 
         if data is not None:
             song_playing = True
+
+            song_name = data[1]["item"]["name"]
 
             # print("data: " + str(data))
             local_timestamp = data[0]
@@ -238,7 +242,7 @@ def worker(conn, frequency=20.0):
             input_len = X_scaled.shape[1]
 
             # Initialize the SOM
-            som = MiniSom(map_width, map_height, input_len, sigma=0.5, learning_rate=0.5)
+            som = MiniSom(map_width, map_height, input_len, sigma=1.0, learning_rate=0.5)
 
             # Train the SOM
             som.pca_weights_init(X_scaled)
@@ -248,6 +252,9 @@ def worker(conn, frequency=20.0):
             cluster_labels = np.zeros(X.shape[0], dtype=int)
             for i, x in enumerate(X_scaled):
                 cluster_labels[i] = som.winner(x)[0]
+
+            # print("cluster_labels")
+            # print(cluster_labels)
 
             # Print the number of clusters
             num_clusters = len(np.unique(cluster_labels))
@@ -265,6 +272,8 @@ def worker(conn, frequency=20.0):
             for cluster_label in top_n_clusters:
                 if label_counts[cluster_label] >= m:
                     print("Cluster", cluster_label, "has", label_counts[cluster_label], "vectors")
+                    cluster_coords = som.winner(som._weights[cluster_label])
+                    print("Cluster", cluster_label, "centroid coordinates:", cluster_coords)
 
             # Generate a list that corresponds to the top n clusters
             cluster_list = [-1] * len(segments)
@@ -272,23 +281,43 @@ def worker(conn, frequency=20.0):
                 if cluster_labels[i] in top_n_clusters and label_counts[cluster_labels[i]] >= m:
                     cluster_list[i] = cluster_labels[i]
 
+            # Print the X,Y coordinates that each vector gets mapped to
+            for i, x in enumerate(X_scaled):
+                winner_coords = som.winner(x)
+                #print("Vector", i, "is mapped to", winner_coords)
+                SOM_stuff_idk.append(winner_coords)
+
             # print the length of the segments array
             print("segments length: " + str(len(segments)))
 
-            # print the list
-            print("Cluster list:")
-            print(cluster_list)
+
 
             # print the length of the cluster list
             print("cluster list length: " + str(len(cluster_list)))
 
+            # Plot the SOM
+            plt.figure(figsize=(map_width, map_height))
+            plt.pcolor(som.distance_map().T, cmap='bone_r')
+            plt.colorbar()
+
+            # Plot the cluster centroids
+            for cluster_label in top_n_clusters:
+                if label_counts[cluster_label] >= m:
+                    cluster_coords = som.winner(som._weights[cluster_label])
+                    plt.plot(cluster_coords[1] + 0.5, cluster_coords[0] + 0.5, marker='o', markersize=15, color='red')
+
+            # Save the plot to a file
+            plt.savefig('som_plot_' + str(song_name) + '.png')
+
+
+
             print(top_n_clusters)
+
 
             timbre_colors = []
             for i in range(20):
                 timbre_colors.append(random_color(1.0))
 
-            print(timbre_colors)
 
 
 
@@ -358,7 +387,7 @@ def worker(conn, frequency=20.0):
                 section_progress = 0
 
 
-            progress_bar_2(section_progress, pixels1, [255, 255, 255], bg_color, 90, 3)
+            progress_bar_2(section_progress, pixels1, [255, 255, 255], bg_color, 180, 3)
 
             # print the beat if it has changed
             for beat in beats:
@@ -393,14 +422,24 @@ def worker(conn, frequency=20.0):
 
                         current_segment_index = segments.index(segment)
 
+                        current_segment_SOM_coords = SOM_stuff_idk[current_segment_index]
+                        print("current_segment_SOM_coords: " + str(current_segment_SOM_coords))
+
+
+
             #print("current_segment_index: " + str(current_segment_index))
 
-            #print(cluster_list[current_segment_index])
+            print(cluster_list[current_segment_index])
+
+            print
 
             if cluster_list[current_segment_index] != -1:
-                pixels1[6] = timbre_colors[cluster_list[current_segment_index]]
-                pixels1[7] = timbre_colors[cluster_list[current_segment_index]]
-                pixels1[8] = timbre_colors[cluster_list[current_segment_index]]
+                pixels1[5] = [0, 0, 0]
+                pixels1[6] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+                pixels1[7] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+                pixels1[8] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+
+            pixels1[4] = [0, 0, 0]
 
 
 
