@@ -5,21 +5,33 @@ from base64 import b64encode
 import random
 
 import requests
-from flask import Flask, request, redirect, session
+from flask import Flask, request, redirect, session, render_template
 
 import json
 import multiprocessing as mp
 import time
 import datetime
 
+import math
+
+# check if the OS is windows
+import sys
+
+import board
+import neopixel
+
+pixels1 = neopixel.NeoPixel(board.D18, 180, brightness=0.2, auto_write=False)
+
 # LED CTRL
-import ledCtrl
+# import ledCtrl
+from audioChroma import run_som
+
 
 # Create a socket object
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-#led_obj = ledCtrl.square_LED_panel(8, 10)
-led_obj = ledCtrl.led_strip(1440, 10)
+# led_obj = ledCtrl.square_LED_panel(8, 10)
+# led_obj = ledCtrl.led_strip(1440, 10)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
@@ -27,10 +39,11 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 SPOTIFY_CLIENT_ID = "fdeab218fc904db89d4f1d278f268002"
 
 # read a file and set the client secret
-with open("config.cfg", "r") as f:
-    SPOTIFY_CLIENT_SECRET = f.read()
+# with open("config.cfg", "r") as f:
+# SPOTIFY_CLIENT_SECRET = f.read()
+SPOTIFY_CLIENT_SECRET = "85cfcaceb90b4ae9af8a9226bbc41a90"
 
-SPOTIFY_REDIRECT_URI = "http://127.0.0.1:5000/callback"
+SPOTIFY_REDIRECT_URI = "http://192.168.0.152:5000/callback"
 SPOTIFY_AUTHORIZATION_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
@@ -82,12 +95,11 @@ def index():
         siteTextData = resp.json()["item"]["name"] + " by " + resp.json()["item"]["artists"][0][
             "name"] + " is currently playing."
 
-        # time.sleep(3) this has no effect on lead or lag
         currently_playing_data = resp.json()
 
         # print(resp.json()["item"]["name"])
         # print(resp.json()["item"]["id"])
-    elif resp.status_code == 401:
+    elif resp.status_code == 401 or resp.status_code == 400:
         return redirect("/login/spotify")
     else:
         return "Request failed: " + resp.text, resp.status_code
@@ -109,7 +121,14 @@ def index():
     else:
         return "Request failed: " + resp.text, resp.status_code
 
-    return siteTextData
+    song = currently_playing_data["item"]["name"]  # set the song title here
+    artist = currently_playing_data["item"]["artists"][0][
+        "name"]  # set the artist name here
+    refresh_interval = math.ceil(
+        (currently_playing_data["item"]["duration_ms"] - currently_playing_data["progress_ms"]) / 1000)
+    # refresh_interval = 10
+    return render_template('index.html', song=song, artist=artist, refresh_interval=refresh_interval)
+    # return siteTextData
 
 
 def random_color(max_brightness):
@@ -128,91 +147,70 @@ def next_color(max_brightness, last_color):
     r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
     return [int(r * 255), int(g * 255), int(b * 255)]
 
+def check_match(string):
+    table = ["value1", "value2", "value3"]  # example table of values
+    if string in table:
+        return True
+    else:
+        return False
+
 
 def worker(conn, frequency=20.0):
     data = None
-    data_old = None
     current_section = None
-    current_song_time = 0 # time in seconds
+    current_song_time = 0
     testTime1 = 0
     current_song_timeAPI = 0
     api_timestamp = 0
     testVar123 = True
-    num_in_queue = 0
-    # scheduled_frame_time = 0
-    render_song_time = 0 # time in seconds
-    time_offset = -1000 # time in milliseconds
+    current_section_duration = 1
+    current_section_start = 0
     song_playing = False
-    queue_slots_open = 5
+    current_beat = None
+    beat_even = False
 
+    current_segment = None
+    segment_color = [255, 0, 0]
+    segment_timbre = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 12 values
+    current_segment_index = 0
+    current_segment_SOM_coords = [0, 0]
+    SOM_stuff_idk = []
 
-    color = [255, 0, 0]
+    bg_color = [255, 0, 0]
+
+    rap_color = [255, 0, 0]
 
     local_timestamp = 0
 
     # array of sections
     sections = []
 
-    print("SPECIAL TEST")
-
-    HOST = '192.168.0.113'  # Symbolic name meaning all available interfaces
-    PORT = 80  # Arbitrary non-privileged port
-
-    time.sleep(0.1)
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((HOST, PORT))
-        s.listen(1)
-        print('Server listening on port', PORT)
-        conn, addr = s.accept()
-        with conn:
-            conn.settimeout(0.1)
-            print('Connected by', addr)
-            while True:
-                # print("waiting for data")
-                try:
-                    data = conn.recv(30)
-                    print("Data raw: " + str(data))
-                    conn.sendall('Thanks for the message'.encode())
-                except TimeoutError:
-                    continue
-
-                if not data:
-                    break
-                #print('Received:', data.decode())
-
-
-    socket_obj = ledCtrl.tcp_connect()
-
-    print("connected to socket")
+    # array of beats
+    beats = []
 
     while True:
+        # get the time the loop started
+        start_time = time.perf_counter()
+
         # check if there is data in the queue
         if conn.poll():
             # get the data
             data = conn.recv()
 
-        if data is not data_old:
+        if data is not None:
             song_playing = True
 
+            song_name = data[1]["item"]["name"]
+
+            song_id = data[1]["item"]["id"]
 
             # print("data: " + str(data))
             local_timestamp = data[0]
 
             currently_playing_data = data[1]
 
-            # # print the song name and artist
-            # print(str(currently_playing_data["item"]["name"]) + " by " + str(
-            #     currently_playing_data["item"]["artists"][0]["name"]))
-
             # this is the time the song started playing in UNIX milliseconds
             api_timestamp = currently_playing_data["timestamp"]
-
-            # # print api_timestamp
-            # # this is the time the song started playing in UNIX milliseconds
-            # print("api_timestamp: " + str(api_timestamp))
-            # # print api_timestamp as a human readable time
-            # print("Song started playing at: " + str(datetime.datetime.fromtimestamp(api_timestamp / 1000.0)))
 
             current_song_timeAPI = currently_playing_data['progress_ms'] / 1000  # current song time in seconds
             # print("current_song_timeAPI: " + str(current_song_timeAPI))
@@ -223,80 +221,205 @@ def worker(conn, frequency=20.0):
             # add the sections to the array
             sections = analysis_data["sections"]
 
-            # print the start times and durations of each section
-            for section in sections:
-                print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
+            # add beat data to the array
+            beats = analysis_data["beats"]
+
+            # print the length of the beats array
+            # print("beats length: " + str(len(beats)))
+
+            # add segment data to the array
+            segments = analysis_data["segments"]
+
+
+            # create a new array of segments with the timbre data
+            X_list = []
+            for segment in segments:
+                X_list.append(segment["timbre"])
+
+            # SOM stuff
+            SOM_stuff_idk = run_som(X_list, song_name, segments, False)
+
+            # end of SOM stuff
 
 
 
+
+
+
+            timbre_colors = []
+            for i in range(20):
+                timbre_colors.append(random_color(1.0))
+
+
+
+
+
+
+
+
+            # print(sections)
+            #
+            if testVar123:
+                # print the start times of each section and the confidence on the same line
+                for section in sections:
+                    print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
+                testVar123 = False
+
+            time_offset = -1000
             current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
-            current_song_time = (current_time - local_timestamp + time_offset) / 1000 + current_song_timeAPI
-            render_song_time = current_song_time
-            data_old = data
+            current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
 
-            # send dummy frame
-            ledCtrl.sendPanelData3(1676857643023, led_obj)
+            data = None
 
-            #socket_obj.close()
-            time.sleep(10)
 
-        # end
+        # check if the song is special
 
-        current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
-        # print("Render song time: " + str(render_song_time))
+
+
+        # end of do once
+
+        # get current unix time in milliseconds
+        current_time = int(round(time.time() * 1000))
+        # print current_time in a human readable format
+        # print("current_time: " + str(datetime.datetime.fromtimestamp(current_time / 1000.0)))
+
+        current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
+        # print("current_song_time: " + str(current_song_time))
+
         # print the section if it has changed
         for section in sections:
-            if section["start"] <= render_song_time < section["start"] + section["duration"]:
+            if section["start"] <= current_song_time < section["start"] + section["duration"]:
                 if current_section != sections.index(section):
-                    # print("section" + str(sections.index(section)))
+                    print("section" + str(sections.index(section)))
                     current_section = sections.index(section)
+                    current_section_duration = section["duration"]
+                    current_section_start = section["start"]
 
-                    # print(current_song_time)
+                    bg_color = next_color(0.5, bg_color)
+                    pixels1.fill(bg_color)
 
-                    # generate random rgb color
-                    ledCtrl.setPanelColor(random_color(0.3), led_obj)
-                    print("Changing color, render_song_time: " + str(render_song_time))
+
 
 
 
         if song_playing:
 
-            # this needs to be in UNIX ms
-            scheduled_frame_time = current_time + int((render_song_time - current_song_time) * 1000)  # something is wrong here
-            current_song_time = (current_time - local_timestamp + time_offset) / 1000 + current_song_timeAPI
+            section_progress = (current_song_time - current_section_start) / current_section_duration
 
-        queue_slots_open = ledCtrl.check_queue(socket_obj)
+            # there is a bug where at the beginning of the next song, section_progress is above 1, this is becase
+            # the variables are not reset when the song changes
 
-        # print("Queue Slots Open: " + str(queue_slots_open))
-        if song_playing and queue_slots_open > 0:
-
-            print("sending data")
-            print("scheduled_frame_time: " + str(scheduled_frame_time) + " current_song_time: " + str(
-                current_song_time) + " render_song_time: " + str(render_song_time))
-
-            ledCtrl.sendPanelData2(socket_obj, scheduled_frame_time, led_obj)
-
-
-
-            # print("queue_slots_open: " + str(queue_slots_open))
-
-            # update the render song time
-            render_song_time = render_song_time + 1.0 / frequency
-
-        if current_song_time > 300:
-            break
-    # end while
-    print("closing socket")
-    socket_obj.close()
+            # check if the progress is greater than 1 or less than 0
+            if section_progress > 1:
+                # print("Section progress: " + str(section_progress) + " current_section_start: " + str(
+                #     current_section_start) + " current_song_time: " + str(
+                #     current_song_time) + " current_section_duration: " + str(current_section_duration))
+                section_progress = 0
+            elif section_progress < 0:
+                print("Section progress: " + str(section_progress) + " current_section_start: " + str(
+                    current_section_start) + " current_song_time: " + str(
+                    current_song_time) + " current_section_duration: " + str(current_section_duration))
+                section_progress = 0
 
 
+            progress_bar_2(section_progress, pixels1, [255, 255, 255], bg_color, 180, 3)
+
+            # print the beat if it has changed
+            for beat in beats:
+                if beat["start"] <= current_song_time < beat["start"] + beat["duration"]:
+                    if current_beat != beats.index(beat):
+                        # print("beat" + str(beats.index(beat)))
+                        current_beat = beats.index(beat)
+                        current_beat_duration = beat["duration"]
+                        current_beat_start = beat["start"]
+
+                        beat_even = not beat_even
+
+            if beat_even:
+                pixels1[10] = [0, 255, 0]
+                pixels1[11] = [0, 255, 0]
+                pixels1[12] = [0, 0, 255]
+                pixels1[13] = [0, 0, 255]
+            else:
+                pixels1[10] = [0, 0, 255]
+                pixels1[11] = [0, 0, 255]
+                pixels1[12] = [0, 255, 0]
+                pixels1[13] = [0, 255, 0]
+
+            # print the segment if it has changed
+            for segment in segments:
+                if segment["start"] <= current_song_time < segment["start"] + segment["duration"]:
+                    if current_segment != segments.index(segment):
+                        # segment has changed
+
+                        # update variables
+                        current_segment = segments.index(segment)
+                        current_segment_duration = segment["duration"]
+                        current_segment_start = segment["start"]
+
+                        current_segment_index = segments.index(segment)
+
+                        current_segment_SOM_coords = SOM_stuff_idk[current_segment_index]
+                        # print("current_segment_SOM_coords: " + str(current_segment_SOM_coords))
+
+                        rap_color = next_color(1.0, rap_color)
+
+
+                        # print segment confidence
+                        # print("segment confidence: " + str(segment["confidence"]))
+                        segment_confidence = segment["confidence"]
+
+
+
+            #print("current_segment_index: " + str(current_segment_index))
+
+
+
+
+            if current_segment_index != -1:
+                pixels1[4] = rap_color
+                pixels1[5] = rap_color
+                pixels1[6] = rap_color
+                pixels1[7] = rap_color
+                pixels1[8] = rap_color
+
+
+                # SOM colors
+                # pixels1[6] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+                # pixels1[7] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+                # pixels1[8] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
 
 
 
 
 
+
+
+
+
+
+            pixels1.show()
+
+
+
+        wait_for_next_iteration_no_sleep(frequency, start_time)
+
+
+def progress_bar_2(section_progress, pixels, color, bg_color, n, blur_size=3):
+    # Calculate the number of pixels in the section based on the progress and the total number of pixels
+    section_size = int(section_progress * n)
+
+    # Set the color of the pixels in the section
+    for i in range(section_size):
+        if i < section_size - 1:
+            pixels[i] = color
+        elif i == section_size - 1:
+            old_r, old_g, old_b = bg_color
+            new_r, new_g, new_b = color
+            pixels[i] = [int(old_r * 0.5), int(old_g * 0.5), int(old_b * 0.5)]
+            #pixels[i] = (255, 0, 0)
 
 
 
@@ -309,9 +432,16 @@ def wait_for_next_iteration(frequency):
     time.sleep(time_remaining)
 
 
-def wait_for_next_iteration_no_sleep(frequency):
+def wait_for_next_iteration_no_sleep(frequency, start_time):
     iteration_time = 1.0 / frequency
-    start_time = time.perf_counter()
+
+    fps = 1 / (time.perf_counter() - start_time)
+
+    # print("fps: " + str(fps))
+
+    if fps < 20:
+        print("fps: " + str(fps))
+
     while True:
         if time.perf_counter() - start_time >= iteration_time:
             return
@@ -326,5 +456,6 @@ if __name__ == "__main__":
 
     print("Proc started")
 
-    # this is blocking
-    app.run()
+
+    app.run(host='192.168.0.152', port=5000)
+
