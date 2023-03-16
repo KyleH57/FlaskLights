@@ -20,9 +20,12 @@ import sys
 import board
 import neopixel
 
-pixels1 = neopixel.NeoPixel(board.D18, 180, brightness=0.5, auto_write=False)
+pixels1 = neopixel.NeoPixel(board.D18, 180, brightness=0.2, auto_write=False)
+
 # LED CTRL
 # import ledCtrl
+from audioChroma import run_som
+
 
 # Create a socket object
 # client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -92,7 +95,6 @@ def index():
         siteTextData = resp.json()["item"]["name"] + " by " + resp.json()["item"]["artists"][0][
             "name"] + " is currently playing."
 
-        # time.sleep(3) this has no effect on lead or lag
         currently_playing_data = resp.json()
 
         # print(resp.json()["item"]["name"])
@@ -145,6 +147,13 @@ def next_color(max_brightness, last_color):
     r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
     return [int(r * 255), int(g * 255), int(b * 255)]
 
+def check_match(string):
+    table = ["value1", "value2", "value3"]  # example table of values
+    if string in table:
+        return True
+    else:
+        return False
+
 
 def worker(conn, frequency=20.0):
     data = None
@@ -169,6 +178,8 @@ def worker(conn, frequency=20.0):
 
     bg_color = [255, 0, 0]
 
+    rap_color = [255, 0, 0]
+
     local_timestamp = 0
 
     # array of sections
@@ -190,6 +201,8 @@ def worker(conn, frequency=20.0):
             song_playing = True
 
             song_name = data[1]["item"]["name"]
+
+            song_id = data[1]["item"]["id"]
 
             # print("data: " + str(data))
             local_timestamp = data[0]
@@ -217,101 +230,20 @@ def worker(conn, frequency=20.0):
             # add segment data to the array
             segments = analysis_data["segments"]
 
-            print(segments[0]["timbre"])
 
             # create a new array of segments with the timbre data
             X_list = []
             for segment in segments:
                 X_list.append(segment["timbre"])
 
-            import numpy as np
-            import matplotlib.pyplot as plt
-            from sklearn.preprocessing import StandardScaler
-            from minisom import MiniSom
+            # SOM stuff
+            SOM_stuff_idk = run_som(X_list, song_name, segments, False)
 
-            # Convert the list to a numpy array
-            X = np.array(X_list)
-
-            # Standardize the data to have zero mean and unit variance
-            scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(X)
-
-            # Set the dimensions of the SOM
-            map_width = 20
-            map_height = 20
-            input_len = X_scaled.shape[1]
-
-            # Initialize the SOM
-            som = MiniSom(map_width, map_height, input_len, sigma=1.0, learning_rate=0.5)
-
-            # Train the SOM
-            som.pca_weights_init(X_scaled)
-            som.train_random(X_scaled, 1000)  # number of training iterations
-
-            # Assign each sound vector to a cluster
-            cluster_labels = np.zeros(X.shape[0], dtype=int)
-            for i, x in enumerate(X_scaled):
-                cluster_labels[i] = som.winner(x)[0]
-
-            # print("cluster_labels")
-            # print(cluster_labels)
-
-            # Print the number of clusters
-            num_clusters = len(np.unique(cluster_labels))
-            print("Number of clusters:", num_clusters)
-
-            # Count the number of vectors in each cluster
-            unique_labels, counts = np.unique(cluster_labels, return_counts=True)
-            label_counts = dict(zip(unique_labels, counts))
-
-            # Print the top n largest clusters with at least m vectors
-            n = 5  # number of largest clusters to print
-            m = 10  # minimum number of vectors per cluster
-            sorted_counts = sorted(label_counts.items(), key=lambda x: x[1], reverse=True)
-            top_n_clusters = [x[0] for x in sorted_counts[:n]]
-            for cluster_label in top_n_clusters:
-                if label_counts[cluster_label] >= m:
-                    print("Cluster", cluster_label, "has", label_counts[cluster_label], "vectors")
-                    cluster_coords = som.winner(som._weights[cluster_label])
-                    print("Cluster", cluster_label, "centroid coordinates:", cluster_coords)
-
-            # Generate a list that corresponds to the top n clusters
-            cluster_list = [-1] * len(segments)
-            for i, segment in enumerate(segments):
-                if cluster_labels[i] in top_n_clusters and label_counts[cluster_labels[i]] >= m:
-                    cluster_list[i] = cluster_labels[i]
-
-            # Print the X,Y coordinates that each vector gets mapped to
-            for i, x in enumerate(X_scaled):
-                winner_coords = som.winner(x)
-                #print("Vector", i, "is mapped to", winner_coords)
-                SOM_stuff_idk.append(winner_coords)
-
-            # print the length of the segments array
-            print("segments length: " + str(len(segments)))
+            # end of SOM stuff
 
 
 
-            # print the length of the cluster list
-            print("cluster list length: " + str(len(cluster_list)))
 
-            # Plot the SOM
-            plt.figure(figsize=(map_width, map_height))
-            plt.pcolor(som.distance_map().T, cmap='bone_r')
-            plt.colorbar()
-
-            # Plot the cluster centroids
-            for cluster_label in top_n_clusters:
-                if label_counts[cluster_label] >= m:
-                    cluster_coords = som.winner(som._weights[cluster_label])
-                    plt.plot(cluster_coords[1] + 0.5, cluster_coords[0] + 0.5, marker='o', markersize=15, color='red')
-
-            # Save the plot to a file
-            plt.savefig('som_plot_' + str(song_name) + '.png')
-
-
-
-            print(top_n_clusters)
 
 
             timbre_colors = []
@@ -340,6 +272,14 @@ def worker(conn, frequency=20.0):
 
             data = None
 
+
+        # check if the song is special
+
+
+
+
+        # end of do once
+
         # get current unix time in milliseconds
         current_time = int(round(time.time() * 1000))
         # print current_time in a human readable format
@@ -357,9 +297,6 @@ def worker(conn, frequency=20.0):
                     current_section_duration = section["duration"]
                     current_section_start = section["start"]
 
-
-                    # send LED data
-                    # ledCtrl.sendPanelData(led_obj, client_socket)
                     bg_color = next_color(0.5, bg_color)
                     pixels1.fill(bg_color)
 
@@ -415,7 +352,9 @@ def worker(conn, frequency=20.0):
             for segment in segments:
                 if segment["start"] <= current_song_time < segment["start"] + segment["duration"]:
                     if current_segment != segments.index(segment):
+                        # segment has changed
 
+                        # update variables
                         current_segment = segments.index(segment)
                         current_segment_duration = segment["duration"]
                         current_segment_start = segment["start"]
@@ -423,23 +362,35 @@ def worker(conn, frequency=20.0):
                         current_segment_index = segments.index(segment)
 
                         current_segment_SOM_coords = SOM_stuff_idk[current_segment_index]
-                        print("current_segment_SOM_coords: " + str(current_segment_SOM_coords))
+                        # print("current_segment_SOM_coords: " + str(current_segment_SOM_coords))
+
+                        rap_color = next_color(1.0, rap_color)
+
+
+                        # print segment confidence
+                        # print("segment confidence: " + str(segment["confidence"]))
+                        segment_confidence = segment["confidence"]
 
 
 
             #print("current_segment_index: " + str(current_segment_index))
 
-            print(cluster_list[current_segment_index])
 
-            print
 
-            if cluster_list[current_segment_index] != -1:
-                pixels1[5] = [0, 0, 0]
-                pixels1[6] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
-                pixels1[7] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
-                pixels1[8] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
 
-            pixels1[4] = [0, 0, 0]
+            if current_segment_index != -1:
+                pixels1[4] = rap_color
+                pixels1[5] = rap_color
+                pixels1[6] = rap_color
+                pixels1[7] = rap_color
+                pixels1[8] = rap_color
+
+
+                # SOM colors
+                # pixels1[6] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+                # pixels1[7] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+                # pixels1[8] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
+
 
 
 
