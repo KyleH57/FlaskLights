@@ -20,12 +20,16 @@ import sys
 import board
 import neopixel
 
-pixels1 = neopixel.NeoPixel(board.D18, 180, brightness=0.2, auto_write=False)
+
+NUM_LEDS = 150
+pixels1 = neopixel.NeoPixel(board.D18, NUM_LEDS, brightness=0.2, auto_write=False)
 
 # LED CTRL
 # import ledCtrl
-from audioChroma import run_som
-
+# from audioChroma import run_som
+from audioChroma import *
+from songMagic import SongLookup, Song
+from constellation import constellation
 
 # Create a socket object
 # client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -39,9 +43,11 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 SPOTIFY_CLIENT_ID = "fdeab218fc904db89d4f1d278f268002"
 
 # read a file and set the client secret
-# with open("config.cfg", "r") as f:
-# SPOTIFY_CLIENT_SECRET = f.read()
-SPOTIFY_CLIENT_SECRET = "85cfcaceb90b4ae9af8a9226bbc41a90"
+with open("config.cfg", "r") as f:
+    SPOTIFY_CLIENT_SECRET = f.read().strip()
+
+
+print("SECRET: " + SPOTIFY_CLIENT_SECRET)
 
 SPOTIFY_REDIRECT_URI = "http://192.168.0.152:5000/callback"
 SPOTIFY_AUTHORIZATION_URL = "https://accounts.spotify.com/authorize"
@@ -126,7 +132,6 @@ def index():
         "name"]  # set the artist name here
     refresh_interval = math.ceil(
         (currently_playing_data["item"]["duration_ms"] - currently_playing_data["progress_ms"]) / 1000)
-    # refresh_interval = 10
     return render_template('index.html', song=song, artist=artist, refresh_interval=refresh_interval)
     # return siteTextData
 
@@ -188,6 +193,12 @@ def worker(conn, frequency=20.0):
     # array of beats
     beats = []
 
+    # intialize the song "database"
+    song_database = SongLookup.get_instance()
+
+    # intialize the constellation
+    my_constellation = constellation(10, 15, 15, 15) # TODO, verify spacing values
+
     while True:
         # get the time the loop started
         start_time = time.perf_counter()
@@ -239,31 +250,12 @@ def worker(conn, frequency=20.0):
             # SOM stuff
             SOM_stuff_idk = run_som(X_list, song_name, segments, False)
 
-            # end of SOM stuff
-
-
-
-
-
-
             timbre_colors = []
             for i in range(20):
                 timbre_colors.append(random_color(1.0))
 
 
 
-
-
-
-
-
-            # print(sections)
-            #
-            if testVar123:
-                # print the start times of each section and the confidence on the same line
-                for section in sections:
-                    print("start time: " + str(section["start"]) + " confidence: " + str(section["confidence"]))
-                testVar123 = False
 
             time_offset = -1000
             current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
@@ -273,11 +265,22 @@ def worker(conn, frequency=20.0):
             data = None
 
 
-        # check if the song is special
 
+            print("\nsong id: " + str(song_id))
 
+            #print duration of the song
+            print(analysis_data["track"]["duration"])
 
+            sections_only_times = []
+            for section in sections:
+                sections_only_times.append(section["start"])
 
+            print(sections_only_times)
+
+            # check if the song is special
+            special_song_obj = song_database.get_song_by_id(song_id)
+
+        my_constellation.set_led_color(55, [255, 0, 0])
         # end of do once
 
         # get current unix time in milliseconds
@@ -288,23 +291,24 @@ def worker(conn, frequency=20.0):
         current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
         # print("current_song_time: " + str(current_song_time))
 
-        # print the section if it has changed
-        for section in sections:
-            if section["start"] <= current_song_time < section["start"] + section["duration"]:
-                if current_section != sections.index(section):
-                    print("section" + str(sections.index(section)))
-                    current_section = sections.index(section)
-                    current_section_duration = section["duration"]
-                    current_section_start = section["start"]
 
-                    bg_color = next_color(0.5, bg_color)
-                    pixels1.fill(bg_color)
 
 
 
 
 
         if song_playing:
+
+            # Do something if the section changes
+            for section in sections:
+                if section["start"] <= current_song_time < section["start"] + section["duration"]:
+                    if current_section != sections.index(section):
+                        # print("section" + str(sections.index(section)))
+                        current_section = sections.index(section)
+                        current_section_duration = section["duration"]
+                        current_section_start = section["start"]
+
+
 
             section_progress = (current_song_time - current_section_start) / current_section_duration
 
@@ -324,9 +328,9 @@ def worker(conn, frequency=20.0):
                 section_progress = 0
 
 
-            progress_bar_2(section_progress, pixels1, [255, 255, 255], bg_color, 180, 3)
+            #progress_bar_2(section_progress, pixels1, [255, 255, 255], bg_color, NUM_LEDS, 3)
 
-            # print the beat if it has changed
+            # Do something if the beat has changed
             for beat in beats:
                 if beat["start"] <= current_song_time < beat["start"] + beat["duration"]:
                     if current_beat != beats.index(beat):
@@ -337,16 +341,16 @@ def worker(conn, frequency=20.0):
 
                         beat_even = not beat_even
 
-            if beat_even:
-                pixels1[10] = [0, 255, 0]
-                pixels1[11] = [0, 255, 0]
-                pixels1[12] = [0, 0, 255]
-                pixels1[13] = [0, 0, 255]
-            else:
-                pixels1[10] = [0, 0, 255]
-                pixels1[11] = [0, 0, 255]
-                pixels1[12] = [0, 255, 0]
-                pixels1[13] = [0, 255, 0]
+            # if beat_even:
+            #     pixels1[10] = [0, 255, 0]
+            #     pixels1[11] = [0, 255, 0]
+            #     pixels1[12] = [0, 0, 255]
+            #     pixels1[13] = [0, 0, 255]
+            # else:
+            #     pixels1[10] = [0, 0, 255]
+            #     pixels1[11] = [0, 0, 255]
+            #     pixels1[12] = [0, 255, 0]
+            #     pixels1[13] = [0, 255, 0]
 
             # print the segment if it has changed
             for segment in segments:
@@ -375,15 +379,13 @@ def worker(conn, frequency=20.0):
 
 
 
-
-
-
-            if current_segment_index != -1:
-                pixels1[4] = rap_color
-                pixels1[5] = rap_color
-                pixels1[6] = rap_color
-                pixels1[7] = rap_color
-                pixels1[8] = rap_color
+            #
+            # if current_segment_index != -1:
+            #     pixels1[4] = rap_color
+            #     pixels1[5] = rap_color
+            #     pixels1[6] = rap_color
+            #     pixels1[7] = rap_color
+            #     pixels1[8] = rap_color
 
 
                 # SOM colors
@@ -393,14 +395,16 @@ def worker(conn, frequency=20.0):
 
 
 
+            my_constellation.show()
+
+            my_constellation.set_segment_color(1, [0, 255, 0])
+
+           # pixels1 = my_constellation.get_color_data()
 
 
 
 
-
-
-
-            pixels1.show()
+            #pixels1.show()
 
 
 

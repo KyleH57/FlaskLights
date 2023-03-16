@@ -33,3 +33,30 @@ class Song:
 
     def get_section_durations(self):
         return self.section_durations
+
+
+
+class SongLookup:
+    __instance = None
+
+    @staticmethod
+    def get_instance():
+        if SongLookup.__instance is None:
+            SongLookup()
+        return SongLookup.__instance
+
+    def __init__(self):
+        if SongLookup.__instance is not None:
+            raise Exception("This class is a singleton!")
+        else:
+            SongLookup.__instance = self
+            self.song_list = []
+
+        self.song_list.append(Song("63mL1DdcSFfxVJ9XGnSRQz", 176.97333, [0.0, 7.9221, 21.40309, 34.00896, 48.79903, 64.01683, 70.5222, 91.83413, 116.60762, 132.47868, 145.744, 163.1296]))
+
+    def get_song_by_id(self, id):
+        for song in self.song_list:
+            if song.get_song_id() == id:
+                return song
+
+        return None
