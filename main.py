@@ -373,7 +373,7 @@ def worker(conn, frequency=20.0):
 
 
 
-            #print("current_segment_index: " + str(current_segment_index))
+
 
 
 
