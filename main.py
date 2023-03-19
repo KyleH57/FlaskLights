@@ -30,6 +30,7 @@ pixels1 = neopixel.NeoPixel(board.D18, NUM_LEDS, brightness=0.2, auto_write=Fals
 from audioChroma import *
 from songMagic import SongLookup, Song
 from constellation import constellation
+from effects import *
 
 # Create a socket object
 # client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -181,6 +182,10 @@ def worker(conn, frequency=20.0):
     current_segment_SOM_coords = [0, 0]
     SOM_stuff_idk = []
 
+    # tatums
+    current_tatum = 0
+    current_tatum_index = 0
+
     bg_color = [255, 0, 0]
 
     rap_color = [255, 0, 0]
@@ -241,6 +246,9 @@ def worker(conn, frequency=20.0):
             # add segment data to the array
             segments = analysis_data["segments"]
 
+            # add taum data to the array
+            tatums = analysis_data["tatums"]
+
 
             # create a new array of segments with the timbre data
             X_list = []
@@ -265,6 +273,8 @@ def worker(conn, frequency=20.0):
             data = None
 
 
+            # start printing song info
+            print("Song name: " + song_name)
 
             print("\nsong id: " + str(song_id))
 
@@ -277,10 +287,21 @@ def worker(conn, frequency=20.0):
 
             print(sections_only_times)
 
+            # print num of sections
+            print("num of sections: " + str(len(sections)))
+
+            # print num of beats
+            print("num of beats: " + str(len(beats)))
+
+            # print num of segments
+            print("num of segments: " + str(len(segments)))
+
+            # print num of tatums
+            print("num of tatums: " + str(len(tatums)))
+
             # check if the song is special
             special_song_obj = song_database.get_song_by_id(song_id)
 
-        my_constellation.set_led_color(55, [255, 0, 0])
         # end of do once
 
         # get current unix time in milliseconds
@@ -375,6 +396,28 @@ def worker(conn, frequency=20.0):
                         # print("segment confidence: " + str(segment["confidence"]))
                         segment_confidence = segment["confidence"]
 
+                        rap_color = next_color(1.0, rap_color)
+                        rap1(rap_color, my_constellation, current_segment_index)
+
+
+
+            # do something if the tatum has changed
+            for tatum in tatums:
+                if tatum["start"] <= current_song_time < tatum["start"] + tatum["duration"]:
+                    if current_tatum != tatums.index(tatum):
+                        # print("tatum" + str(tatums.index(tatum)))
+                        current_tatum = tatums.index(tatum)
+                        current_tatum_duration = tatum["duration"]
+                        current_tatum_start = tatum["start"]
+
+                        current_tatum_index = tatums.index(tatum)
+
+                        # # delete this later
+                        # rap_color = next_color(1.0, rap_color)
+                        # rap1(rap_color, my_constellation, current_tatum_index)
+
+
+
 
 
 
@@ -397,7 +440,10 @@ def worker(conn, frequency=20.0):
 
             my_constellation.show()
 
-            my_constellation.set_segment_color(1, [0, 255, 0])
+            #my_constellation.set_segment_color(1, [0, 255, 0])
+
+
+
 
            # pixels1 = my_constellation.get_color_data()
 

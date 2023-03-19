@@ -79,5 +79,8 @@ class constellation:
         for i in range(start_index, end_index):
             self.pixels2[i] = color
 
+    def clear(self):
+        self.pixels2.fill((0, 0, 0))
+
     def __str__(self):
         return "Constellation with {} segments and {} LEDs".format(self.num_segments, self.num_leds)
