@@ -21,8 +21,8 @@ import board
 import neopixel
 
 
-NUM_LEDS = 150
-pixels1 = neopixel.NeoPixel(board.D18, NUM_LEDS, brightness=0.2, auto_write=False)
+# NUM_LEDS = 150
+# pixels1 = neopixel.NeoPixel(board.D18, NUM_LEDS, brightness=0.2, auto_write=False)
 
 # LED CTRL
 # import ledCtrl
@@ -201,8 +201,13 @@ def worker(conn, frequency=20.0):
     # intialize the song "database"
     song_database = SongLookup.get_instance()
 
+    NUM_SEGMENTS = 38
+
     # intialize the constellation
-    my_constellation = constellation(10, 15, 15, 15) # TODO, verify spacing values
+    my_constellation = constellation("180, 120, 60, 0, -60, 0", 15, 15, 13)
+
+    # print all the segments
+    my_constellation.print_XY_coords()
 
     while True:
         # get the time the loop started
@@ -274,9 +279,9 @@ def worker(conn, frequency=20.0):
 
 
             # start printing song info
-            print("Song name: " + song_name)
+            print("\nSong name: " + song_name)
 
-            print("\nsong id: " + str(song_id))
+            print("song id: " + str(song_id))
 
             #print duration of the song
             print(analysis_data["track"]["duration"])
@@ -348,9 +353,6 @@ def worker(conn, frequency=20.0):
                     current_song_time) + " current_section_duration: " + str(current_section_duration))
                 section_progress = 0
 
-
-            #progress_bar_2(section_progress, pixels1, [255, 255, 255], bg_color, NUM_LEDS, 3)
-
             # Do something if the beat has changed
             for beat in beats:
                 if beat["start"] <= current_song_time < beat["start"] + beat["duration"]:
@@ -397,7 +399,7 @@ def worker(conn, frequency=20.0):
                         segment_confidence = segment["confidence"]
 
                         rap_color = next_color(1.0, rap_color)
-                        rap1(rap_color, my_constellation, current_segment_index)
+            rap1(rap_color, my_constellation, current_segment_index, NUM_SEGMENTS)
 
 
 
@@ -412,45 +414,14 @@ def worker(conn, frequency=20.0):
 
                         current_tatum_index = tatums.index(tatum)
 
-                        # # delete this later
-                        # rap_color = next_color(1.0, rap_color)
-                        # rap1(rap_color, my_constellation, current_tatum_index)
 
 
-
-
-
-
-
-            #
-            # if current_segment_index != -1:
-            #     pixels1[4] = rap_color
-            #     pixels1[5] = rap_color
-            #     pixels1[6] = rap_color
-            #     pixels1[7] = rap_color
-            #     pixels1[8] = rap_color
-
-
-                # SOM colors
-                # pixels1[6] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
-                # pixels1[7] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
-                # pixels1[8] = [current_segment_SOM_coords[0] * 10, current_segment_SOM_coords[1] * 10, 0]
 
 
 
             my_constellation.show()
 
-            #my_constellation.set_segment_color(1, [0, 255, 0])
 
-
-
-
-           # pixels1 = my_constellation.get_color_data()
-
-
-
-
-            #pixels1.show()
 
 
 
@@ -490,7 +461,7 @@ def wait_for_next_iteration_no_sleep(frequency, start_time):
     # print("fps: " + str(fps))
 
     if fps < 20:
-        print("fps: " + str(fps))
+        print("WARNING LOW FPS - fps: " + str(fps))
 
     while True:
         if time.perf_counter() - start_time >= iteration_time:
@@ -505,6 +476,7 @@ if __name__ == "__main__":
     process.start()
 
     print("Proc started")
+
 
 
     app.run(host='192.168.0.152', port=5000)

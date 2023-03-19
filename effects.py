@@ -1,5 +1,5 @@
 
-def rap1(color, constellation, num):
+def rap1(color, constellation, num, num_segments):
     # multi segment
 
     # #print("rap1")
@@ -16,7 +16,7 @@ def rap1(color, constellation, num):
     # 1 segment at a time
     #print("rap1")
     #print(num)
-    x = num % 10
+    x = num % num_segments
     if x == 0:
         constellation.clear()
         constellation.set_segment_color(0, color)
