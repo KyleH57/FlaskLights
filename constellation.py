@@ -1,7 +1,9 @@
 import math
+import time
+
 import board
 import neopixel
-
+import colorsys
 
 class WS2812LED:
     def __init__(self, xCoord, yCoord):
@@ -63,7 +65,7 @@ class led_segment:
 
 
 class constellation:
-    def __init__(self, angles, num_leds_segment, spacing, edge_spacing):
+    def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness):
         self.angles = [int(angle) for angle in angles.split(',')]
         self.num_segments = len(self.angles)
         self.segments = []
@@ -83,10 +85,29 @@ class constellation:
                 index = i * num_leds_segment + j
                 self.color_data[index] = self.segments[i].get_color(j)
 
+        self.pixels2 = neopixel.NeoPixel(board.D18, self.num_leds, brightness=brightness, auto_write=False)
+
     def set_color(self, segment_index, led_index, color):
         self.segments[segment_index].set_color(led_index, color)
         index = segment_index * self.segments[0].num_leds + led_index
         self.color_data[index] = color
+
+    def set_color_rgb(self, led_index, color):
+        # check if led_index is valid
+        if led_index < 0 or led_index >= self.num_leds:
+            return None
+
+        self.color_data[led_index] = color
+
+    def set_color_HSV(self, led_index, color):
+        # check if led_index is valid
+        if led_index < 0 or led_index >= self.num_leds:
+            return None
+
+        # convert HSV to RGB
+        color = colorsys.hsv_to_rgb(color[0], color[1], color[2])
+
+        self.color_data[led_index] = color
 
     def get_color(self, segment_index, led_index):
         return self.segments[segment_index].get_color(led_index)
@@ -97,6 +118,32 @@ class constellation:
         for i in range(start_index, end_index):
             self.set_color(segment_index, i - start_index, color)
 
+    def get_LED(self, led_index):
+        # check if led_index is valid
+        if led_index < 0 or led_index >= self.num_leds:
+            return None
+
+        return self.color_data[led_index]
+
+    def rainbow_wave_x(constellation, wave_length, frequency, wave_progress):
+        for led_index in range(constellation.num_leds):
+            x_coord = constellation.segments[led_index // constellation.segments[0].num_leds].leds[
+                led_index % constellation.segments[0].num_leds].xCoord
+            hue = ((x_coord + wave_progress) % wave_length) / wave_length
+            color_hsv = (hue, 1, 1)  # Full saturation and value for a bright rainbow
+
+            constellation.set_color_HSV(led_index, color_hsv)
+
+        # Update the colors of the LEDs
+        for i, color in enumerate(constellation.color_data):
+            constellation.pixels2[i] = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+
+        # constellation.pixels2.show()
+
+        wave_progress += wave_length / frequency
+        wave_progress %= wave_length
+        return wave_progress
+
     def __str__(self):
         return "Constellation with {} segments and {} LEDs".format(self.num_segments, self.num_leds)
 
@@ -104,3 +151,9 @@ class constellation:
     def print_XY_coords(self):
         for i in range(self.num_segments):
             self.segments[i].print_XY_coords()
+
+
+    def show(self):
+        for i, color in enumerate(self.color_data):
+            self.pixels2[i] = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+        self.pixels2.show()

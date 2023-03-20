@@ -24,3 +24,7 @@ def rap1(color, constellation, num, num_segments):
         constellation.clear()
         constellation.set_segment_color(x, color)
         #print(num % 10)
+
+
+
+

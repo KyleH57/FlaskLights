@@ -21,8 +21,8 @@ import board
 import neopixel
 
 
-# NUM_LEDS = 150
-# pixels1 = neopixel.NeoPixel(board.D18, NUM_LEDS, brightness=0.2, auto_write=False)
+#NUM_LEDS = 150
+#pixels1 = neopixel.NeoPixel(board.D18, NUM_LEDS, brightness=0.2, auto_write=False)
 
 # LED CTRL
 # import ledCtrl
@@ -204,10 +204,15 @@ def worker(conn, frequency=20.0):
     NUM_SEGMENTS = 38
 
     # intialize the constellation
-    my_constellation = constellation("180, 120, 60, 0, -60, 0", 15, 15, 13)
+    my_constellation = constellation("180, 120, 60, 0, -60, 0", 15, 15, 13, 0.2)
 
     # print all the segments
     my_constellation.print_XY_coords()
+
+    # effects variables
+    last_rainbow_time = time.time()
+    wave_progress = 0
+
 
     while True:
         # get the time the loop started
@@ -399,7 +404,6 @@ def worker(conn, frequency=20.0):
                         segment_confidence = segment["confidence"]
 
                         rap_color = next_color(1.0, rap_color)
-            rap1(rap_color, my_constellation, current_segment_index, NUM_SEGMENTS)
 
 
 
@@ -416,7 +420,7 @@ def worker(conn, frequency=20.0):
 
 
 
-
+            wave_progress = my_constellation.rainbow_wave_x(300, frequency, wave_progress)
 
 
             my_constellation.show()
