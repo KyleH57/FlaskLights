@@ -66,15 +66,17 @@ class led_segment:
 
 class constellation:
     def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness, debug=False):
-        self.angles = [int(angle) for angle in angles.split(',')]
+        self.angles = angles.split(',')
         self.num_segments = len(self.angles)
         self.segments = []
         x_start, y_start = 0, 0
 
-        for angle in self.angles:
+        for angle_str in self.angles:
+            angle = int(angle_str[:-1]) if 'r' in angle_str else int(angle_str)
             segment = led_segment(x_start, y_start, angle, num_leds_segment, spacing, edge_spacing)
             self.segments.append(segment)
-            x_start, y_start = segment.x_end, segment.y_end
+            if 'r' not in angle_str:
+                x_start, y_start = segment.x_end, segment.y_end
 
         self.num_leds = self.num_segments * num_leds_segment
         self.color_data = [[0, 0, 0] for i in range(self.num_leds)]
