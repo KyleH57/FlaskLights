@@ -65,7 +65,7 @@ class led_segment:
 
 
 class constellation:
-    def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness):
+    def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness, debug=False):
         self.angles = [int(angle) for angle in angles.split(',')]
         self.num_segments = len(self.angles)
         self.segments = []
@@ -86,6 +86,10 @@ class constellation:
                 self.color_data[index] = self.segments[i].get_color(j)
 
         self.pixels2 = neopixel.NeoPixel(board.D18, self.num_leds, brightness=brightness, auto_write=False)
+
+        if debug:
+            # print number of leds
+            print("Number of LEDs: {}".format(self.num_leds))
 
     def set_color(self, segment_index, led_index, color):
         self.segments[segment_index].set_color(led_index, color)
@@ -125,7 +129,7 @@ class constellation:
 
         return self.color_data[led_index]
 
-    def rainbow_wave_x(constellation, wave_length, frequency, wave_progress):
+    def rainbow_wave_x(constellation, wave_length, speed, frequency, wave_progress):
         for led_index in range(constellation.num_leds):
             x_coord = constellation.segments[led_index // constellation.segments[0].num_leds].leds[
                 led_index % constellation.segments[0].num_leds].xCoord
@@ -140,7 +144,7 @@ class constellation:
 
         # constellation.pixels2.show()
 
-        wave_progress += wave_length / frequency
+        wave_progress += (speed / frequency)
         wave_progress %= wave_length
         return wave_progress
 

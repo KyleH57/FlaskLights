@@ -21,7 +21,7 @@ def run_som(X_list, song_name, segments, debug=False):
     som = MiniSom(map_width, map_height, input_len, sigma=1.0, learning_rate=0.5)
 
     # Train the SOM
-    som.pca_weights_init(X_scaled)
+    som.pca_weights_init(X_scaled) # Neural network go brr
     som.train_random(X_scaled, 1000)  # number of training iterations
 
     # Assign each sound vector to a cluster

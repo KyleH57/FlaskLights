@@ -21,9 +21,6 @@ import board
 import neopixel
 
 
-#NUM_LEDS = 150
-#pixels1 = neopixel.NeoPixel(board.D18, NUM_LEDS, brightness=0.2, auto_write=False)
-
 # LED CTRL
 # import ledCtrl
 # from audioChroma import run_som
@@ -32,11 +29,6 @@ from songMagic import SongLookup, Song
 from constellation import constellation
 from effects import *
 
-# Create a socket object
-# client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-# led_obj = ledCtrl.square_LED_panel(8, 10)
-# led_obj = ledCtrl.led_strip(1440, 10)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
@@ -203,11 +195,16 @@ def worker(conn, frequency=20.0):
 
     NUM_SEGMENTS = 38
 
+    # ARRANGEMENT = "180, 120, 60, 0, -60, 0, -60, 0, 60, 0, -60, 0, 60, 120, 190, 120, 180, -120, 180, 120, 180, 120, 180, 120, 60, 0, -60, 0, -60, 0, 60, 0, -60, 0, 60"
+    ARRANGEMENT = "-120, -180, 120, 60, 0, 120, 60, 0, 120, 0, -60, 0, 120, 60, 0, 120, -120, -60"
+
+    MAX_BRIGHTNESS = 0.11
+
     # intialize the constellation
-    my_constellation = constellation("180, 120, 60, 0, -60, 0", 15, 15, 13, 0.2)
+    my_constellation = constellation(ARRANGEMENT, 15, 15, 13, MAX_BRIGHTNESS, debug=True)
 
     # print all the segments
-    my_constellation.print_XY_coords()
+    # my_constellation.print_XY_coords()
 
     # effects variables
     last_rainbow_time = time.time()
@@ -326,10 +323,7 @@ def worker(conn, frequency=20.0):
 
 
 
-
-
         if song_playing:
-
             # Do something if the section changes
             for section in sections:
                 if section["start"] <= current_song_time < section["start"] + section["duration"]:
@@ -369,16 +363,6 @@ def worker(conn, frequency=20.0):
 
                         beat_even = not beat_even
 
-            # if beat_even:
-            #     pixels1[10] = [0, 255, 0]
-            #     pixels1[11] = [0, 255, 0]
-            #     pixels1[12] = [0, 0, 255]
-            #     pixels1[13] = [0, 0, 255]
-            # else:
-            #     pixels1[10] = [0, 0, 255]
-            #     pixels1[11] = [0, 0, 255]
-            #     pixels1[12] = [0, 255, 0]
-            #     pixels1[13] = [0, 255, 0]
 
             # print the segment if it has changed
             for segment in segments:
@@ -420,13 +404,11 @@ def worker(conn, frequency=20.0):
 
 
 
-            wave_progress = my_constellation.rainbow_wave_x(300, frequency, wave_progress)
+            wave_progress = my_constellation.rainbow_wave_x(1600, 1600, frequency, wave_progress)
+
 
 
             my_constellation.show()
-
-
-
 
 
         wait_for_next_iteration_no_sleep(frequency, start_time)
