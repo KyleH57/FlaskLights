@@ -50,7 +50,11 @@ SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 @app.route("/login/spotify")
 def login_spotify():
     scope = "user-library-read user-read-email user-read-playback-state user-read-currently-playing"
-    authorization_url = f"{SPOTIFY_AUTHORIZATION_URL}?client_id={SPOTIFY_CLIENT_ID}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scope}"
+    authorization_url = f"{SPOTIFY_AUTHORIZATION_URL}?" \
+                        f"client_id={SPOTIFY_CLIENT_ID}&" \
+                        f"response_type=code&" \
+                        f"redirect_uri={SPOTIFY_REDIRECT_URI}&" \
+                        f"scope={scope}"
     return redirect(authorization_url)
 
 
@@ -153,7 +157,7 @@ def check_match(string):
         return False
 
 
-def worker(conn, frequency=20.0):
+def worker(conn, frequency=16.0):
     data = None
     current_section = None
     current_song_time = 0
@@ -195,8 +199,10 @@ def worker(conn, frequency=20.0):
 
     NUM_SEGMENTS = 38
 
-    # ARRANGEMENT = "180, 120, 60, 0, -60, 0, -60, 0, 60, 0, -60, 0, 60, 120, 190, 120, 180, -120, 180, 120, 180, 120, 180, 120, 60, 0, -60, 0, -60, 0, 60, 0, -60, 0, 60"
-    ARRANGEMENT = "-120, -180, 120, 60, 0r, 120, 60, 0r, 120, 60, 0, -60, -120, -60, -120, -60, 0, -60, 0, 60, 120, -180, -120r, 120, -180r, 60, 120, 180r, 60, 0, 060, 0120, -180r, -60, -120r, 0, -60,-120, -180r, -60, 0, 60, 120, -180r, 60, 120,-180,-120r, 120, -180r, 60, 0, -60, -120"
+    ARRANGEMENT = "-120, -180, 120, 60, 0r, 120, 60, 0r, 120, 60, 0, -60, -120, -60, -120, -60, " \
+                  "0, -60, 0, 60, 120, -180, -120r, 120, -180r, 60, 120, 180r, 60, 0, 060, 0120, " \
+                  "-180r, -60, -120r, 0, -60,-120, -180r, -60, 0, 60, 120, -180r, 60, 120,-180, " \
+                  "-120r, 120, -180r, 60, 0, -60, -120"
 
     MAX_BRIGHTNESS = 0.11
 
@@ -363,6 +369,9 @@ def worker(conn, frequency=20.0):
 
                         beat_even = not beat_even
 
+                        my_constellation.clear()
+                        my_constellation.set_random_segments_color([255, 255, 255], 0.3)
+
 
             # print the segment if it has changed
             for segment in segments:
@@ -404,11 +413,19 @@ def worker(conn, frequency=20.0):
 
 
 
-            wave_progress = my_constellation.rainbow_wave_x(1600, 1600, frequency, wave_progress)
 
 
 
             my_constellation.show()
+
+        else: # display a generic rainbow wave if no song is playing
+            # wavelength, speed
+            wave_progress = my_constellation.rainbow_wave_x(2400, 1600, frequency, wave_progress)
+
+            # this is very slow, need to use multiple simultaneous threads
+            my_constellation.show()
+            # end of if song_playing
+
 
 
         wait_for_next_iteration_no_sleep(frequency, start_time)
@@ -426,17 +443,8 @@ def progress_bar_2(section_progress, pixels, color, bg_color, n, blur_size=3):
             old_r, old_g, old_b = bg_color
             new_r, new_g, new_b = color
             pixels[i] = [int(old_r * 0.5), int(old_g * 0.5), int(old_b * 0.5)]
-            #pixels[i] = (255, 0, 0)
 
 
-
-def wait_for_next_iteration(frequency):
-    iteration_time = 1.0 / frequency
-    start_time = time.perf_counter()
-    elapsed_time = time.perf_counter() - start_time
-    time_remaining = iteration_time - elapsed_time
-    # print("time_remaining: " + str(time_remaining))
-    time.sleep(time_remaining)
 
 
 def wait_for_next_iteration_no_sleep(frequency, start_time):
@@ -444,9 +452,7 @@ def wait_for_next_iteration_no_sleep(frequency, start_time):
 
     fps = 1 / (time.perf_counter() - start_time)
 
-    # print("fps: " + str(fps))
-
-    if fps < 20:
+    if fps < frequency:
         print("WARNING LOW FPS - fps: " + str(fps))
 
     while True:
@@ -460,10 +466,6 @@ if __name__ == "__main__":
     parent_conn, child_conn = mp.Pipe()
     process = mp.Process(target=worker, args=(child_conn,))
     process.start()
-
-    print("Proc started")
-
-
 
     app.run(host='192.168.0.152', port=5000)
 

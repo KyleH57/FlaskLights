@@ -1,4 +1,5 @@
 import math
+import random
 import time
 
 import board
@@ -46,18 +47,19 @@ class led_segment:
         self.x_end = x_end
         self.y_end = y_end
 
-    def set_color(self, index, color):
+    def set_led_color(self, index, color):
         self.leds[index].setColor(color)
+
+    def set_color_all(self, color):
+        for i in range(self.num_leds):
+            self.leds[i].setColor(color)
 
     def get_color(self, index):
         return self.leds[index].color
 
-
     def print_XY_coords(self):
         # print the x_start and y_start of the segment rounded to 1 decimal place
         print("x_start: {:.1f}, y_start: {:.1f}".format(self.x_start, self.y_start))
-
-
 
     def __str__(self):
         return "LED segment starting at ({}, {}) with {} LEDs spaced {} units apart at an angle of {} degrees".format(
@@ -89,14 +91,13 @@ class constellation:
 
         self.pixels2 = neopixel.NeoPixel(board.D18, self.num_leds, brightness=brightness, auto_write=False)
 
+        self.clear()
+
         if debug:
             # print number of leds
             print("Number of LEDs: {}".format(self.num_leds))
 
-    def set_color(self, segment_index, led_index, color):
-        self.segments[segment_index].set_color(led_index, color)
-        index = segment_index * self.segments[0].num_leds + led_index
-        self.color_data[index] = color
+
 
     def set_color_rgb(self, led_index, color):
         # check if led_index is valid
@@ -111,18 +112,28 @@ class constellation:
             return None
 
         # convert HSV to RGB
-        color = colorsys.hsv_to_rgb(color[0], color[1], color[2])
+        color_rgb = colorsys.hsv_to_rgb(color[0], color[1], color[2])
 
-        self.color_data[led_index] = color
+        # convert float RGB values to integers in the range 0 to 255
+        color_int = [int(c * 255) for c in color_rgb]
+
+        self.color_data[led_index] = color_int
 
     def get_color(self, segment_index, led_index):
         return self.segments[segment_index].get_color(led_index)
 
     def set_segment_color(self, segment_index, color):
-        start_index = segment_index * self.segments[0].num_leds
-        end_index = start_index + self.segments[0].num_leds
-        for i in range(start_index, end_index):
-            self.set_color(segment_index, i - start_index, color)
+        self.segments[segment_index].set_color_all(color)
+
+
+
+
+
+    def copy_segment_colors_to_data(self):
+        for i in range(self.num_segments):
+            for j in range(self.segments[i].num_leds):
+                index = i * self.segments[i].num_leds + j
+                self.color_data[index] = self.segments[i].get_color(j)
 
     def get_LED(self, led_index):
         # check if led_index is valid
@@ -140,15 +151,31 @@ class constellation:
 
             constellation.set_color_HSV(led_index, color_hsv)
 
-        # Update the colors of the LEDs
-        for i, color in enumerate(constellation.color_data):
-            constellation.pixels2[i] = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
-
-        # constellation.pixels2.show()
-
         wave_progress += (speed / frequency)
         wave_progress %= wave_length
         return wave_progress
+
+    def set_random_segments_color(self, color, fraction):
+        if not 0 <= fraction <= 1:
+            raise ValueError("Fraction should be a number between 0 and 1.")
+
+        n = int(self.num_segments * fraction)
+        selected_segments = random.sample(self.segments, n)
+
+        for segment in selected_segments:
+            segment.set_color_all(color)
+
+        self.copy_segment_colors_to_data()
+
+    def clear(self):
+        # for i in range(self.num_leds):
+        #     self.color_data[i] = [0, 0, 0]
+
+
+        for segment in self.segments:
+            segment.set_color_all([0, 0, 0])
+
+        self.copy_segment_colors_to_data()
 
     def __str__(self):
         return "Constellation with {} segments and {} LEDs".format(self.num_segments, self.num_leds)
@@ -161,5 +188,11 @@ class constellation:
 
     def show(self):
         for i, color in enumerate(self.color_data):
-            self.pixels2[i] = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+            # self.pixels2[i] = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+            self.pixels2[i] = (int(color[0]), int(color[1] * 1), int(color[2] * 1))
         self.pixels2.show()
+
+    # def show2(self):
+    #     for i, color in enumerate(self.color_data):
+    #         self.pixels2[i] = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
+    #     self.pixels2.show()
