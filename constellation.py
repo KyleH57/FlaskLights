@@ -73,6 +73,9 @@ class constellation:
         self.segments = []
         x_start, y_start = 0, 0
 
+        # array of all currently playing effects
+        self.effects = []
+
         for angle_str in self.angles:
             angle = int(angle_str[:-1]) if 'r' in angle_str else int(angle_str)
             segment = led_segment(x_start, y_start, angle, num_leds_segment, spacing, edge_spacing)
@@ -96,7 +99,6 @@ class constellation:
         if debug:
             # print number of leds
             print("Number of LEDs: {}".format(self.num_leds))
-
 
 
     def set_color_rgb(self, led_index, color):
@@ -124,10 +126,6 @@ class constellation:
 
     def set_segment_color(self, segment_index, color):
         self.segments[segment_index].set_color_all(color)
-
-
-
-
 
     def copy_segment_colors_to_data(self):
         for i in range(self.num_segments):
@@ -167,6 +165,23 @@ class constellation:
 
         self.copy_segment_colors_to_data()
 
+
+
+    def add_effect(self, effect):
+        self.effects.append(effect)
+
+    def run_effects(self, current_song_time):
+
+        self.clear()
+
+        for effect in self.effects:
+            if effect.is_done(current_song_time):
+                self.effects.remove(effect)
+            else:
+                effect.write(current_song_time)
+
+        self.show()
+
     def clear(self):
         # for i in range(self.num_leds):
         #     self.color_data[i] = [0, 0, 0]
@@ -192,7 +207,19 @@ class constellation:
             self.pixels2[i] = (int(color[0]), int(color[1] * 1), int(color[2] * 1))
         self.pixels2.show()
 
-    # def show2(self):
-    #     for i, color in enumerate(self.color_data):
-    #         self.pixels2[i] = (int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))
-    #     self.pixels2.show()
+
+class FillAllEffect:
+    def __init__(self, constellation,start_time, duration, color):
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.color = color
+
+    def write(self, current_song_time):
+        for led in range(self.constellation.num_leds):
+            self.constellation.set_color_rgb(led, self.color)
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time + 0.2:
+            return True

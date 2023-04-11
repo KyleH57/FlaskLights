@@ -26,9 +26,9 @@ import neopixel
 # from audioChroma import run_som
 from audioChroma import *
 from songMagic import SongLookup, Song
-from constellation import constellation
+from constellation import constellation, FillAllEffect
 from effects import *
-
+from songState import *
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
@@ -168,8 +168,7 @@ def worker(conn, frequency=16.0):
     current_section_duration = 1
     current_section_start = 0
     song_playing = False
-    current_beat = None
-    beat_even = False
+
 
     current_segment = None
     segment_color = [255, 0, 0]
@@ -182,17 +181,23 @@ def worker(conn, frequency=16.0):
     current_tatum = 0
     current_tatum_index = 0
 
-    bg_color = [255, 0, 0]
+
+    segment_color = [255, 0, 0]
 
     rap_color = [255, 0, 0]
 
     local_timestamp = 0
 
+
+
     # array of sections
     sections = []
+    section_color = [255, 0, 0]
 
     # array of beats
     beats = []
+    current_beat = None
+    beat_even = False
 
     # intialize the song "database"
     song_database = SongLookup.get_instance()
@@ -276,8 +281,6 @@ def worker(conn, frequency=16.0):
                 timbre_colors.append(random_color(1.0))
 
 
-
-
             time_offset = -1000
             current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
@@ -325,19 +328,17 @@ def worker(conn, frequency=16.0):
         current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
         # print("current_song_time: " + str(current_song_time))
 
-
-
-
-
         if song_playing:
-            # Do something if the section changes
-            for section in sections:
-                if section["start"] <= current_song_time < section["start"] + section["duration"]:
-                    if current_section != sections.index(section):
-                        # print("section" + str(sections.index(section)))
-                        current_section = sections.index(section)
-                        current_section_duration = section["duration"]
-                        current_section_start = section["start"]
+
+            current_section, section_changed = get_current_section(sections, current_section, current_song_time)
+            if section_changed:
+                section_color = next_color(1.0, section_color)
+
+                # # calculate time until next section
+                # time_until_next_section = sections[current_section + 1]["start"] - current_song_time
+                #
+                # my_constellation.add_effect(FillAllEffect(my_constellation,current_song_time, time_until_next_section, section_color))
+                pass
 
 
 
@@ -358,65 +359,35 @@ def worker(conn, frequency=16.0):
                     current_song_time) + " current_section_duration: " + str(current_section_duration))
                 section_progress = 0
 
-            # Do something if the beat has changed
-            for beat in beats:
-                if beat["start"] <= current_song_time < beat["start"] + beat["duration"]:
-                    if current_beat != beats.index(beat):
-                        # print("beat" + str(beats.index(beat)))
-                        current_beat = beats.index(beat)
-                        current_beat_duration = beat["duration"]
-                        current_beat_start = beat["start"]
-
-                        beat_even = not beat_even
-
-                        my_constellation.clear()
-                        my_constellation.set_random_segments_color([255, 255, 255], 0.3)
 
 
-            # print the segment if it has changed
-            for segment in segments:
-                if segment["start"] <= current_song_time < segment["start"] + segment["duration"]:
-                    if current_segment != segments.index(segment):
-                        # segment has changed
+            current_beat, beat_changed = get_current_beat(beats, current_beat, current_song_time)
+            if beat_changed:
+                pass
+                #print("The beat has changed to", current_beat)
 
-                        # update variables
-                        current_segment = segments.index(segment)
-                        current_segment_duration = segment["duration"]
-                        current_segment_start = segment["start"]
+            current_segment, segment_changed = get_current_segment(segments, current_segment, current_song_time)
+            if segment_changed:
+                pass
+                #print("The segment has changed to", current_segment)
 
-                        current_segment_index = segments.index(segment)
-
-                        current_segment_SOM_coords = SOM_stuff_idk[current_segment_index]
-                        # print("current_segment_SOM_coords: " + str(current_segment_SOM_coords))
-
-                        rap_color = next_color(1.0, rap_color)
-
-
-                        # print segment confidence
-                        # print("segment confidence: " + str(segment["confidence"]))
-                        segment_confidence = segment["confidence"]
-
-                        rap_color = next_color(1.0, rap_color)
+            current_tatum, tatum_changed = get_current_tatum(tatums, current_tatum, current_song_time)
+            if tatum_changed:
+                pass
+                #print("The tatum has changed to", current_tatum)
 
 
 
-            # do something if the tatum has changed
-            for tatum in tatums:
-                if tatum["start"] <= current_song_time < tatum["start"] + tatum["duration"]:
-                    if current_tatum != tatums.index(tatum):
-                        # print("tatum" + str(tatums.index(tatum)))
-                        current_tatum = tatums.index(tatum)
-                        current_tatum_duration = tatum["duration"]
-                        current_tatum_start = tatum["start"]
 
-                        current_tatum_index = tatums.index(tatum)
+            my_constellation.run_effects(current_song_time)
 
 
 
 
 
 
-            my_constellation.show()
+
+
 
         else: # display a generic rainbow wave if no song is playing
             # wavelength, speed
