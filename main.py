@@ -158,6 +158,7 @@ def check_match(string):
 
 
 def worker(conn, frequency=16.0):
+    song_duration = 0
     data = None
     current_section = None
     current_song_time = 0
@@ -237,6 +238,8 @@ def worker(conn, frequency=16.0):
             song_name = data[1]["item"]["name"]
 
             song_id = data[1]["item"]["id"]
+
+            song_duration = data[1]["item"]["duration_ms"] / 1000  # song duration in seconds
 
             # print("data: " + str(data))
             local_timestamp = data[0]
@@ -322,24 +325,24 @@ def worker(conn, frequency=16.0):
 
         # get current unix time in milliseconds
         current_time = int(round(time.time() * 1000))
-        # print current_time in a human readable format
-        # print("current_time: " + str(datetime.datetime.fromtimestamp(current_time / 1000.0)))
 
         current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
-        # print("current_song_time: " + str(current_song_time))
 
         if song_playing:
-
             current_section, section_changed = get_current_section(sections, current_section, current_song_time)
             if section_changed:
                 section_color = next_color(1.0, section_color)
 
-                # # calculate time until next section
-                # time_until_next_section = sections[current_section + 1]["start"] - current_song_time
-                #
-                # my_constellation.add_effect(FillAllEffect(my_constellation,current_song_time, time_until_next_section, section_color))
-                pass
+                # calculate time until next section
+                if current_section == len(sections) - 1:
+                    time_until_next_section = song_duration - current_song_time
+                else:
+                    time_until_next_section = sections[current_section + 1]["start"] - current_song_time
 
+                my_constellation.add_effect(
+                    FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
+
+                # end_time_test = current_song_time + time_until_next_section
 
 
             section_progress = (current_song_time - current_section_start) / current_section_duration

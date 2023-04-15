@@ -68,13 +68,16 @@ class led_segment:
 
 class constellation:
     def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness, debug=False):
+        print("Initializing constellation...")
         self.angles = angles.split(',')
         self.num_segments = len(self.angles)
-        self.segments = []
+        self.segments = [] # list of led_segment objects
         x_start, y_start = 0, 0
 
         # array of all currently playing effects
         self.effects = []
+
+
 
         for angle_str in self.angles:
             angle = int(angle_str[:-1]) if 'r' in angle_str else int(angle_str)
@@ -177,8 +180,10 @@ class constellation:
         for effect in self.effects:
             if effect.is_done(current_song_time):
                 self.effects.remove(effect)
-            else:
-                effect.write(current_song_time)
+                print("removing effect")
+
+        for effect in self.effects:
+            effect.write(current_song_time)
 
         self.show()
 
@@ -209,7 +214,7 @@ class constellation:
 
 
 class FillAllEffect:
-    def __init__(self, constellation,start_time, duration, color):
+    def __init__(self, constellation, start_time, duration, color):
         self.constellation = constellation
         self.start_time = start_time
         self.duration = duration
@@ -223,3 +228,5 @@ class FillAllEffect:
     def is_done(self, current_song_time):
         if current_song_time >= self.end_time + 0.2:
             return True
+
+
