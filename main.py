@@ -355,7 +355,7 @@ def worker(conn, frequency=16.0):
                 #      FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
                 setion_color = next_color(1.0, section_color)
                 print("added fill all effect")
-                my_constellation.add_effect(FillHexagonEffect(my_constellation, current_song_time, time_until_next_section, section_color, 1))
+                my_constellation.add_effect(FillHexagonEffect(my_constellation, current_song_time, time_until_next_section, section_color, 7))
 
                 # end_time_test = current_song_time + time_until_next_section
 

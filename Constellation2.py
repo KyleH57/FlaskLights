@@ -297,25 +297,24 @@ class Constellation:
         hex_segments = []
         current_node = node
 
-        for _ in range(6):
+        for i in range(6):
             # Find the next node depending on the iteration
-            if _ % 2 == 0:
-                if _ == 0:
-                    # Find node with largest Y
-                    next_node = max(current_node.neighbor_nodes, key=lambda n: n.y)
-                elif _ == 2:
-                    # Find node with smallest X
-                    next_node = min(current_node.neighbor_nodes, key=lambda n: n.x)
-                else:
-                    # Find node with smallest Y
-                    next_node = min(current_node.neighbor_nodes, key=lambda n: n.y)
-            else:
-                if _ == 1 or _ == 5:
-                    # Find node with largest X
-                    next_node = max(current_node.neighbor_nodes, key=lambda n: n.x)
-                else:
-                    # Find node with largest Y
-                    next_node = max(current_node.neighbor_nodes, key=lambda n: n.y)
+
+            if i == 0:
+                # Find node with largest Y
+                next_node = max(current_node.neighbor_nodes, key=lambda n: n.y)
+            elif i == 1:
+                # Find node with smallest X
+                next_node = min(current_node.neighbor_nodes, key=lambda n: n.x)
+            elif i == 2 or i == 3:
+                # Find node with smallest Y
+                next_node = min(current_node.neighbor_nodes, key=lambda n: n.y)
+            elif i == 4:
+                # Find node with largest X
+                next_node = max(current_node.neighbor_nodes, key=lambda n: n.x)
+            elif i == 5:
+                # Find node with largest Y
+                next_node = max(current_node.neighbor_nodes, key=lambda n: n.y)
 
             # Find the segment connecting current_node and next_node
             for segment in current_node.segment_neighbors:
