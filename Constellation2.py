@@ -1,9 +1,9 @@
 import math
 import platform
-
 import matplotlib.pyplot as plt
-
-
+import board
+import neopixel
+import colorsys
 def is_near(point1, point2, tolerance=1):
     """
     Check if two points are within a certain distance of each other on the real number line or in the 2D coordinate plane.
@@ -98,7 +98,7 @@ class Segment:
         return f"Segment({self.x_start}, {self.y_start}, {math.degrees(self.angle)}, {self.num_leds}, {self.spacing}, {self.edge_spacing}, {self.start_index}, {self.panel})"
 
 
-class Constellation2:
+class Constellation:
     def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness):
         # self.angles = [float(angle.strip('r')) for angle in angles.split(',')]
         self.angles = angles.split(',')
@@ -111,6 +111,10 @@ class Constellation2:
         self.segments = []
         self.nodes = []
         self.leds = []
+        self.num_leds = 0
+
+
+        self.effects = []  # list of currently running effects
 
         self._create_constellation()
 
@@ -136,6 +140,7 @@ class Constellation2:
             segment = Segment(x, y, angle, self.num_leds_segment, self.spacing, self.edge_spacing,
                               self.num_leds_segment * counter, None)
             self.segments.append(segment)
+            self.num_leds += segment.num_leds
 
             counter += 1
             # node at the beginning of the segment
@@ -178,6 +183,9 @@ class Constellation2:
                 end_node.segment_neighbors.append(segment)
 
                 end_node = start_node
+        # end of segment initialization
+
+        self.pixels = neopixel.NeoPixel(board.D18, self.num_leds, brightness=self.brightness, auto_write=False)
 
         self.centroid_x, self.centroid_y = self.find_centroid()
 
@@ -421,5 +429,38 @@ class Constellation2:
             print('Plot saved as constellation_plot_centroid.png')
         else:
             plt.show()
+
+    def set_single_led(self, led_index, color):
+        self.leds[led_index] = color
+
+    def clear(self):
+        # set all leds to black
+        for i in range(self.num_leds):
+            self.leds[i] = (0, 0, 0)
+
+    def add_effect(self, effect):
+        self.effects.append(effect)
+
+    def run_effects(self, current_song_time):
+
+        self.clear()
+
+        # check if any effects are done and remove them
+        for effect in self.effects:
+            if effect.is_done(current_song_time):
+                self.effects.remove(effect)
+
+        # run all remaining effects
+        for effect in self.effects:
+            effect.write(current_song_time)
+
+
+        # copy data from leds to pixels
+        for i in range(self.num_leds):
+            self.pixels[i] = self.leds[i]
+
+        # write data to pixels
+        self.pixels.show()
+
 
 

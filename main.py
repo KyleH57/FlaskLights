@@ -26,7 +26,7 @@ import neopixel
 # from audioChroma import run_som
 from audioChroma import *
 from songMagic import SongLookup, Song
-from constellation import constellation, FillAllEffect
+from Constellation2 import Constellation
 from effects import *
 from songState import *
 
@@ -203,20 +203,29 @@ def worker(conn, frequency=16.0):
     # intialize the song "database"
     song_database = SongLookup.get_instance()
 
-    NUM_SEGMENTS = 38
+    # NUM_SEGMENTS = 38
 
-    ARRANGEMENT = "-120, -180, 120, 60, 0r, 120, 60, 0r, 120, 60, 0, -60, -120, -60, -120, -60, " \
-                  "0, -60, 0, 60, 120, -180, -120r, 120, -180r, 60, 120, 180r, 60, 0, 060, 120, " \
-                  "-180r, -60, -120r, 0, -60,-120, -180r, -60, 0, 60, 120, -180r, 60, 120,-180, " \
-                  "-120r, 120, -180r, 60, 0, -60, -120"
+    ARRANGEMENT = "-120, -180, 120, 60, 0r, 120," \
+                  "60, 0r, 120, 60, 0, -60," \
+                  "-120, -60, -120, -60, 0, -60," \
+                  "0, 60, 120, -180, -120r, 120," \
+                  "-180r, 60, 120, 180r, 60, 0," \
+                  "-60, -120, -180r, -60, -120r, 0," \
+                  "-60,-120, -180r, -60, 0, 60," \
+                  "120, -180r, 60, 120,-180, -120r," \
+                  "120, -180r, 60, 0, -60, -120"
 
     MAX_BRIGHTNESS = 0.11
 
     # intialize the constellation
-    my_constellation = constellation(ARRANGEMENT, 15, 15, 13, MAX_BRIGHTNESS, debug=True)
+    #my_constellation = constellation(ARRANGEMENT, 15, 15, 13, MAX_BRIGHTNESS, debug=True)
+    NUM_LEDS_SEGMENT = 15
+    SEGMENT_LED_SPACING = 15
+    SEGMENT_EDGE_SPACING = 13
+    my_constellation = Constellation(ARRANGEMENT, NUM_LEDS_SEGMENT, SEGMENT_LED_SPACING, SEGMENT_EDGE_SPACING, MAX_BRIGHTNESS)
+    my_constellation.plot_constellation()
 
-    # print all the segments
-    # my_constellation.print_XY_coords()
+
 
     # effects variables
     last_rainbow_time = time.time()
@@ -342,9 +351,11 @@ def worker(conn, frequency=16.0):
                 else:
                     time_until_next_section = sections[current_section + 1]["start"] - current_song_time
 
-                my_constellation.add_effect(
-                    FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
+                # my_constellation.add_effect(
+                #      FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
+                setion_color = next_color(1.0, section_color)
                 print("added fill all effect")
+                my_constellation.add_effect(FillHexagonEffect(my_constellation, current_song_time, time_until_next_section, section_color, 1))
 
                 # end_time_test = current_song_time + time_until_next_section
 
@@ -395,11 +406,14 @@ def worker(conn, frequency=16.0):
 
         else: # display a generic rainbow wave if no song is playing
             # wavelength, speed
-            wave_progress = my_constellation.rainbow_wave_x(2400, 1600, frequency, wave_progress)
+            #wave_progress = my_constellation.rainbow_wave_x(2400, 1600, frequency, wave_progress)
 
             # this is very slow, need to use multiple simultaneous threads
-            my_constellation.show()
+            # my_constellation.show()
             # end of if song_playing
+            # my_constellation.run_effects(current_song_time)
+            pass
+
 
 
 
