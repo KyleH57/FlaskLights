@@ -339,9 +339,20 @@ def worker(conn, frequency=16.0):
 
         if song_playing:
 
-
-
             current_section, section_changed = get_current_section(sections, current_section, current_song_time)
+            current_beat, beat_changed = get_current_beat(beats, current_beat, current_song_time)
+            current_segment, segment_changed = get_current_segment(segments, current_segment, current_song_time)
+            current_tatum, tatum_changed = get_current_tatum(tatums, current_tatum, current_song_time)
+
+            current_song_data = []
+            current_song_data.append(current_song_time)
+            current_song_data.append(current_beat)
+            current_song_data.append(current_segment)
+            current_song_data.append(current_section)
+
+
+
+
             if section_changed:
                 section_color = next_color(1.0, section_color)
 
@@ -354,10 +365,10 @@ def worker(conn, frequency=16.0):
                 # my_constellation.add_effect(
                 #      FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
                 setion_color = next_color(1.0, section_color)
-                print("added fill all effect")
-                my_constellation.add_effect(FillHexagonEffect(my_constellation, current_song_time, time_until_next_section, section_color, 7))
+                c1 = next_color(1.0, section_color)
+                c2 = next_color(1.0, c1)
+                my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
 
-                # end_time_test = current_song_time + time_until_next_section
 
 
             section_progress = (current_song_time - current_section_start) / current_section_duration
@@ -379,22 +390,22 @@ def worker(conn, frequency=16.0):
 
 
 
-            current_beat, beat_changed = get_current_beat(beats, current_beat, current_song_time)
+
             if beat_changed:
                 pass
                 #print("The beat has changed to", current_beat)
 
-            current_segment, segment_changed = get_current_segment(segments, current_segment, current_song_time)
+
             if segment_changed:
                 pass
                 #print("The segment has changed to", current_segment)
 
-            current_tatum, tatum_changed = get_current_tatum(tatums, current_tatum, current_song_time)
+
             if tatum_changed:
                 pass
                 #print("The tatum has changed to", current_tatum)
 
-            my_constellation.run_effects(current_song_time)
+            my_constellation.run_effects(current_song_data)
 
 
 

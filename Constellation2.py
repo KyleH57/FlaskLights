@@ -440,18 +440,18 @@ class Constellation:
     def add_effect(self, effect):
         self.effects.append(effect)
 
-    def run_effects(self, current_song_time):
+    def run_effects(self, current_song_data):
 
         self.clear()
 
         # check if any effects are done and remove them
         for effect in self.effects:
-            if effect.is_done(current_song_time):
+            if effect.is_done(current_song_data):
                 self.effects.remove(effect)
 
         # run all remaining effects
         for effect in self.effects:
-            effect.write(current_song_time)
+            effect.run(current_song_data)
 
 
         # copy data from leds to pixels
