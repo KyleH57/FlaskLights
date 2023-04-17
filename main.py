@@ -206,7 +206,7 @@ def worker(conn, frequency=16.0):
     NUM_SEGMENTS = 38
 
     ARRANGEMENT = "-120, -180, 120, 60, 0r, 120, 60, 0r, 120, 60, 0, -60, -120, -60, -120, -60, " \
-                  "0, -60, 0, 60, 120, -180, -120r, 120, -180r, 60, 120, 180r, 60, 0, 060, 0120, " \
+                  "0, -60, 0, 60, 120, -180, -120r, 120, -180r, 60, 120, 180r, 60, 0, 060, 120, " \
                   "-180r, -60, -120r, 0, -60,-120, -180r, -60, 0, 60, 120, -180r, 60, 120,-180, " \
                   "-120r, 120, -180r, 60, 0, -60, -120"
 
@@ -329,6 +329,9 @@ def worker(conn, frequency=16.0):
         current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
 
         if song_playing:
+
+
+
             current_section, section_changed = get_current_section(sections, current_section, current_song_time)
             if section_changed:
                 section_color = next_color(1.0, section_color)
@@ -341,6 +344,7 @@ def worker(conn, frequency=16.0):
 
                 my_constellation.add_effect(
                     FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
+                print("added fill all effect")
 
                 # end_time_test = current_song_time + time_until_next_section
 
@@ -378,9 +382,6 @@ def worker(conn, frequency=16.0):
             if tatum_changed:
                 pass
                 #print("The tatum has changed to", current_tatum)
-
-
-
 
             my_constellation.run_effects(current_song_time)
 
