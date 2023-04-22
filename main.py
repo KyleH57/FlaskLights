@@ -382,12 +382,12 @@ def worker(conn, frequency=16.0):
                 # my_constellation.add_effect(
                 #      FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
 
-                # setion_color = next_color(1.0, section_color)
-                # c1 = next_color(1.0, section_color)
-                # c2 = next_color(1.0, c1)
-                # my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
+                setion_color = next_color(1.0, section_color)
+                c1 = next_color(1.0, section_color)
+                c2 = next_color(1.0, c1)
+                my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
 
-                my_constellation.add_effect(RainbowWaveEffect(my_constellation, current_song_time, time_until_next_section, 5000, 1550))
+                # my_constellation.add_effect(RainbowWaveEffect(my_constellation, current_song_time, time_until_next_section, 5000, 1550))
 
 
 
