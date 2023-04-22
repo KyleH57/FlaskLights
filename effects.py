@@ -63,27 +63,7 @@ class FillHexagonEffect(Effect):
             return True
 
 
-# class Fill2HexagonEffect:
-#     def __init__(self, constellation, start_time, duration, color, hexagon_index):
-#         self.sub_effects = []
-#         self.sub_effects.append(FillHexagonEffect(constellation, start_time, duration - 2, color, hexagon_index))
-#         self.sub_effects.append(FillHexagonEffect(constellation, start_time, duration - 1, color, hexagon_index + 2))
-#
-#         self.end_time = start_time + duration
-#
-#     def run(self, current_song_data):
-#         for effect in self.sub_effects:
-#             if not effect.run(current_song_data):
-#                 del effect
-#
-#         if not self.is_done(current_song_data):
-#             return True
-#         else:
-#             return False
-#
-#     def is_done(self, current_song_data):
-#         if current_song_data[0] >= self.end_time:
-#             return True
+
 
 
 class BeatMapEffect(Effect):
