@@ -78,8 +78,13 @@ def callback_spotify():
         return "Authorization failed: " + resp.text, resp.status_code
 
 
+last_currently_playing_data_progress_ms = -1
+
 @app.route("/")
 def index():
+    global last_currently_playing_data_progress_ms
+
+
     if "spotify_token" not in session:
         return redirect("/login/spotify")
     headers = {
@@ -99,9 +104,14 @@ def index():
             "name"] + " is currently playing."
 
         currently_playing_data = resp.json()
+        if currently_playing_data["progress_ms"] == last_currently_playing_data_progress_ms:
+            print("Paused")
+            parent_conn.send([0, 0, 0])
+            return render_template('index.html', song="Paused", artist="Paused", refresh_interval=9999)
+        else:
+            last_currently_playing_data_progress_ms = currently_playing_data["progress_ms"]
 
-        # print(resp.json()["item"]["name"])
-        # print(resp.json()["item"]["id"])
+
     elif resp.status_code == 401 or resp.status_code == 400:
         return redirect("/login/spotify")
     else:
@@ -110,16 +120,10 @@ def index():
     # request to get audio analysis of song
     resp = requests.get("https://api.spotify.com/v1/audio-analysis/" + resp.json()["item"]["id"], headers=headers)
     if resp.status_code == 200:
-        # parent_conn.send(resp.json()["sections"])
+        # send timestamp, currently playing data, and audio analysis data to the child process
         parent_conn.send([local_timestamp, currently_playing_data, resp.json()])
 
-        # print the start times aCodend durations of each section
-        for section in resp.json()["sections"]:
-            # print("section" + str(resp.json()["sections"].index(section)))
-            # print(section["start"])
-            # print(section["duration"])
-            # print(section["confidence"])
-            pass
+
 
     else:
         return "Request failed: " + resp.text, resp.status_code
@@ -244,93 +248,96 @@ def worker(conn, frequency=16.0):
             data = conn.recv()
 
         if data is not None:
-            song_playing = True
+            if data[0] == 0 and data[1] == 0 and data[2] == 0:
+                song_playing = False
+            else:
+                song_playing = True
 
-            song_name = data[1]["item"]["name"]
+                song_name = data[1]["item"]["name"]
 
-            song_id = data[1]["item"]["id"]
+                song_id = data[1]["item"]["id"]
 
-            song_duration = data[1]["item"]["duration_ms"] / 1000  # song duration in seconds
+                song_duration = data[1]["item"]["duration_ms"] / 1000  # song duration in seconds
 
-            # print("data: " + str(data))
-            local_timestamp = data[0]
+                # print("data: " + str(data))
+                local_timestamp = data[0]
 
-            currently_playing_data = data[1]
+                currently_playing_data = data[1]
 
-            # this is the time the song started playing in UNIX milliseconds
-            api_timestamp = currently_playing_data["timestamp"]
+                # this is the time the song started playing in UNIX milliseconds
+                api_timestamp = currently_playing_data["timestamp"]
 
-            current_song_timeAPI = currently_playing_data['progress_ms'] / 1000  # current song time in seconds
-            # print("current_song_timeAPI: " + str(current_song_timeAPI))
+                current_song_timeAPI = currently_playing_data['progress_ms'] / 1000  # current song time in seconds
+                # print("current_song_timeAPI: " + str(current_song_timeAPI))
 
-            analysis_data = data[2]
-            # print("audio analysis")
+                analysis_data = data[2]
+                # print("audio analysis")
 
-            # add the sections to the array
-            sections = analysis_data["sections"]
+                # add the sections to the array
+                sections = analysis_data["sections"]
 
-            # add beat data to the array
-            beats = analysis_data["beats"]
+                # add beat data to the array
+                beats = analysis_data["beats"]
 
-            # print the length of the beats array
-            # print("beats length: " + str(len(beats)))
+                # print the length of the beats array
+                # print("beats length: " + str(len(beats)))
 
-            # add segment data to the array
-            segments = analysis_data["segments"]
+                # add segment data to the array
+                segments = analysis_data["segments"]
 
-            # add taum data to the array
-            tatums = analysis_data["tatums"]
-
-
-            # create a new array of segments with the timbre data
-            X_list = []
-            for segment in segments:
-                X_list.append(segment["timbre"])
-
-            # SOM stuff
-            SOM_stuff_idk = run_som(X_list, song_name, segments, False)
-
-            timbre_colors = []
-            for i in range(20):
-                timbre_colors.append(random_color(1.0))
+                # add taum data to the array
+                tatums = analysis_data["tatums"]
 
 
-            time_offset = -1000
-            current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
+                # create a new array of segments with the timbre data
+                X_list = []
+                for segment in segments:
+                    X_list.append(segment["timbre"])
 
-            current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
+                # SOM stuff
+                SOM_stuff_idk = run_som(X_list, song_name, segments, False)
 
-            data = None
+                timbre_colors = []
+                for i in range(20):
+                    timbre_colors.append(random_color(1.0))
 
 
-            # start printing song info
-            print("\nSong name: " + song_name)
+                time_offset = -1000
+                current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
-            print("song id: " + str(song_id))
+                current_song_time = (current_time - local_timestamp) / 1000 + current_song_timeAPI
 
-            #print duration of the song
-            print(analysis_data["track"]["duration"])
+                data = None
 
-            sections_only_times = []
-            for section in sections:
-                sections_only_times.append(section["start"])
 
-            print(sections_only_times)
+                # start printing song info
+                print("\nSong name: " + song_name)
 
-            # print num of sections
-            print("num of sections: " + str(len(sections)))
+                print("song id: " + str(song_id))
 
-            # print num of beats
-            print("num of beats: " + str(len(beats)))
+                #print duration of the song
+                print(analysis_data["track"]["duration"])
 
-            # print num of segments
-            print("num of segments: " + str(len(segments)))
+                sections_only_times = []
+                for section in sections:
+                    sections_only_times.append(section["start"])
 
-            # print num of tatums
-            print("num of tatums: " + str(len(tatums)))
+                print(sections_only_times)
 
-            # check if the song is special
-            special_song_obj = song_database.get_song_by_id(song_id)
+                # print num of sections
+                print("num of sections: " + str(len(sections)))
+
+                # print num of beats
+                print("num of beats: " + str(len(beats)))
+
+                # print num of segments
+                print("num of segments: " + str(len(segments)))
+
+                # print num of tatums
+                print("num of tatums: " + str(len(tatums)))
+
+                # check if the song is special
+                special_song_obj = song_database.get_song_by_id(song_id)
 
         # end of do once
 
