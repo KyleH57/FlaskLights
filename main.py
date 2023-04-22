@@ -189,6 +189,8 @@ def worker(conn, frequency=16.0):
 
     local_timestamp = 0
 
+    idle_rainbow_playing = False
+
 
 
     # array of sections
@@ -339,6 +341,8 @@ def worker(conn, frequency=16.0):
 
         if song_playing:
 
+
+
             current_section, section_changed = get_current_section(sections, current_section, current_song_time)
             current_beat, beat_changed = get_current_beat(beats, current_beat, current_song_time)
             current_segment, segment_changed = get_current_segment(segments, current_segment, current_song_time)
@@ -362,12 +366,23 @@ def worker(conn, frequency=16.0):
                 else:
                     time_until_next_section = sections[current_section + 1]["start"] - current_song_time
 
+                # remove all effects
+                my_constellation.remove_all_effects()
+
+                # set idle_rainbow_playing to false
+                idle_rainbow_playing = False
+
                 # my_constellation.add_effect(
                 #      FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
-                setion_color = next_color(1.0, section_color)
-                c1 = next_color(1.0, section_color)
-                c2 = next_color(1.0, c1)
-                my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
+
+                # setion_color = next_color(1.0, section_color)
+                # c1 = next_color(1.0, section_color)
+                # c2 = next_color(1.0, c1)
+                # my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
+
+                my_constellation.add_effect(RainbowWaveEffect(my_constellation, current_song_time, time_until_next_section, 5000, 1550))
+
+
 
 
 
@@ -405,24 +420,26 @@ def worker(conn, frequency=16.0):
                 pass
                 #print("The tatum has changed to", current_tatum)
 
+
             my_constellation.run_effects(current_song_data)
 
 
 
-
-
-
-
-
-
         else: # display a generic rainbow wave if no song is playing
-            # wavelength, speed
-            #wave_progress = my_constellation.rainbow_wave_x(2400, 1600, frequency, wave_progress)
 
-            # this is very slow, need to use multiple simultaneous threads
-            # my_constellation.show()
-            # end of if song_playing
-            # my_constellation.run_effects(current_song_time)
+
+            if idle_rainbow_playing == False:
+                # remove all effects
+                my_constellation.remove_all_effects()
+
+                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 7200, 1500, 750))
+                idle_rainbow_playing = True
+
+            current_song_data = []
+            current_song_data.append(time.time())
+            my_constellation.run_effects(current_song_data)
+
+
             pass
 
 

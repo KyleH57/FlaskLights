@@ -43,10 +43,17 @@ class WS2812LED:
 
     # string representation of the LED
     def __str__(self):
-        return "LED at " + str(self.xCoord) + ", " + str(self.yCoord)
+        return "LED at " + str(self.xCoord) + ", " + str(self.yCoord) + " centroid at " + str(self.xCoord_centroid) + ", " + str(self.yCoord_centroid) + " with color " + str(self.color)
 
-    def setColor(self, color):
+    def set_color(self, color):
         self.color = color
+
+    def get_color(self):
+        return self.color
+
+    def set_centroid(self, x, y):
+        self.xCoord_centroid = x
+        self.yCoord_centroid = y
 
 
 class Node:
@@ -100,17 +107,18 @@ class Segment:
 
 class Constellation:
     def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness):
-        # self.angles = [float(angle.strip('r')) for angle in angles.split(',')]
         self.angles = angles.split(',')
         self.repeat_flags = ['r' in angle for angle in angles.split(',')]
         self.num_leds_segment = num_leds_segment
         self.spacing = spacing
         self.edge_spacing = edge_spacing
         self.brightness = brightness
+        self.centroid_x = None
+        self.centroid_y = None
 
         self.segments = []
         self.nodes = []
-        self.leds = []
+        self.leds = []  # WS2812LED objects?
         self.num_leds = 0
 
 
@@ -118,16 +126,19 @@ class Constellation:
 
         self._create_constellation()
 
-        self.centroid_x = None
-        self.centroid_y = None
 
-        self.leds = []
+
         for segment in self.segments:
             for i in range(segment.num_leds):
                 x = segment.x_start + (i * segment.spacing + segment.edge_spacing) * math.cos(segment.angle)
                 y = segment.y_start + (i * segment.spacing + segment.edge_spacing) * math.sin(segment.angle)
                 led = WS2812LED(x, y)
                 self.leds.append(led)
+
+        # now that leds are created, calculate centroids
+        for led in self.leds:
+            led.xCoord_centroid = led.xCoord - self.centroid_x
+            led.yCoord_centroid = led.yCoord - self.centroid_y
 
     def _create_constellation(self):
         print("Creating constellation...")
@@ -204,9 +215,8 @@ class Constellation:
             segment.x_end_centroid = segment.x_end - self.centroid_x
             segment.y_end_centroid = segment.y_end - self.centroid_y
 
-        for led in self.leds:
-            led.xCoord_centroid = led.xCoord - self.centroid_x
-            led.yCoord_centroid = led.yCoord - self.centroid_y
+
+
 
     def _find_or_create_node(self, x, y):
         for node in self.nodes:
@@ -430,15 +440,18 @@ class Constellation:
             plt.show()
 
     def set_single_led(self, led_index, color):
-        self.leds[led_index] = color
+        self.leds[led_index].set_color(color)
 
     def clear(self):
         # set all leds to black
         for i in range(self.num_leds):
-            self.leds[i] = (0, 0, 0)
+            self.leds[i].set_color([0, 0, 0])
 
     def add_effect(self, effect):
         self.effects.append(effect)
+
+    def remove_all_effects(self):
+        self.effects = []
 
     def run_effects(self, current_song_data):
 
@@ -456,7 +469,7 @@ class Constellation:
 
         # copy data from leds to pixels
         for i in range(self.num_leds):
-            self.pixels[i] = self.leds[i]
+            self.pixels[i] = self.leds[i].get_color()
 
         # write data to pixels
         self.pixels.show()
