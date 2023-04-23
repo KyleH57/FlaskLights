@@ -143,11 +143,21 @@ def random_color(max_brightness):
     return [int(r * 255), int(g * 255), int(b * 255)]
 
 
-def next_color(max_brightness, last_color):
+# def next_color(max_brightness, last_color):
+#     # convert last color to hsv
+#     last_color = colorsys.rgb_to_hsv(last_color[0] / 255, last_color[1] / 255, last_color[2] / 255)
+#     h_old = last_color[0]
+#     h = h_old + random.randrange(13, 43) / 100
+#     if h > 1:
+#         h -= 1
+#     r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
+#     return [int(r * 255), int(g * 255), int(b * 255)]
+
+def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
     # convert last color to hsv
     last_color = colorsys.rgb_to_hsv(last_color[0] / 255, last_color[1] / 255, last_color[2] / 255)
     h_old = last_color[0]
-    h = h_old + random.randrange(13, 43) / 100
+    h = h_old + random.randrange(min_advance, max_advance) / 100
     if h > 1:
         h -= 1
     r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
@@ -195,6 +205,8 @@ def worker(conn, frequency=16.0):
 
     idle_rainbow_playing = False
 
+    selection_var = 0 # delete this later
+
 
 
     # array of sections
@@ -223,8 +235,6 @@ def worker(conn, frequency=16.0):
 
     MAX_BRIGHTNESS = 0.11
 
-    # intialize the constellation
-    #my_constellation = constellation(ARRANGEMENT, 15, 15, 13, MAX_BRIGHTNESS, debug=True)
     NUM_LEDS_SEGMENT = 15
     SEGMENT_LED_SPACING = 15
     SEGMENT_EDGE_SPACING = 13
@@ -379,15 +389,25 @@ def worker(conn, frequency=16.0):
                 # set idle_rainbow_playing to false
                 idle_rainbow_playing = False
 
-                # my_constellation.add_effect(
-                #      FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
+                # randint from 1 to 3
+                selection_var = random.randint(1, 3)
+                if selection_var == 1:
+                    setion_color = next_color(1.0, section_color)
+                    c1 = next_color(1.0, section_color)
+                    c2 = next_color(1.0, c1)
+                    my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
+                elif selection_var == 2:
+                    my_constellation.add_effect(RainbowWaveEffect(my_constellation, current_song_time, time_until_next_section, 5000, 1550))
+                elif selection_var == 3:
+                    section_color = next_color(1.0, section_color)
+                    c1 = next_color(1.0, section_color, 20, 35)
+                    c2 = next_color(1.0, c1, 20, 35)
+                    my_constellation.add_effect(
+                             FillAllEffect(my_constellation, current_song_time, time_until_next_section, section_color))
 
-                setion_color = next_color(1.0, section_color)
-                c1 = next_color(1.0, section_color)
-                c2 = next_color(1.0, c1)
-                my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
 
-                # my_constellation.add_effect(RainbowWaveEffect(my_constellation, current_song_time, time_until_next_section, 5000, 1550))
+
+                # my_constellation.add_effect(DrawRingEffect(my_constellation, current_song_time, time_until_next_section, 650, 120, [0, 255, 0]))
 
 
 
@@ -414,9 +434,27 @@ def worker(conn, frequency=16.0):
 
 
             if beat_changed:
-                pass
-                #print("The beat has changed to", current_beat)
+                if selection_var == 3:
+                    # generate a random integer between 600 and 1200
+                    random_vel = random.randint(600, 1200)
 
+                    golden_accel = random_vel * -1.61803398875
+
+                    # generate a random integer between -1000 and 1000
+                    random_x = random.randint(-800, 800)
+
+                    random_y = random.randint(-400, 400)
+
+                    # see if beat is even or odd
+                    if current_beat % 2 == 0:
+                        my_constellation.add_effect(
+                            AnimatedRingEffect(my_constellation, current_song_time, 1.0, 50, 200, c1, random_vel,
+                                               golden_accel, random_x, random_y))
+
+                    else:
+                        my_constellation.add_effect(
+                            AnimatedRingEffect(my_constellation, current_song_time, 1.0, 50, 200, c2, random_vel,
+                                               golden_accel, random_x, random_y))
 
             if segment_changed:
                 pass

@@ -30,9 +30,6 @@ class FillAllEffect(Effect):
             return True
 
 
-
-
-
 class FillHexagonEffect(Effect):
     def __init__(self, constellation, start_time, duration, color, hexagon_index):
         super().__init__()
@@ -66,9 +63,6 @@ class FillHexagonEffect(Effect):
     def is_done(self, current_song_data):
         if current_song_data[0] >= self.end_time:
             return True
-
-
-
 
 
 class BeatMapEffect(Effect):
@@ -176,3 +170,71 @@ class RainbowWaveEffect(Effect):
             color_int = [int(c * 255) for c in color_rgb]
 
             led.set_color(color_int)
+
+
+class DrawRingEffect(Effect):
+    def __init__(self, constellation, start_time, duration, outer_rad, thickness, color):
+        super().__init__()
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.outer_rad = outer_rad
+        self.thickness = thickness
+        self.color = color
+
+    def run(self, current_song_data):
+        if not self.is_done(current_song_data):
+            inner_rad = self.outer_rad - self.thickness
+            for led in self.constellation.leds:
+                led_x, led_y = led.xCoord_centroid, led.yCoord_centroid
+                distance = math.sqrt(led_x ** 2 + led_y ** 2)
+
+                if inner_rad <= distance <= self.outer_rad:
+                    led.set_color(self.color)
+            return True
+        else:
+            return False
+
+    def is_done(self, current_song_data):
+        if current_song_data[0] >= self.end_time:
+            return True
+
+
+class AnimatedRingEffect(DrawRingEffect):
+    def __init__(self, constellation, start_time, duration, outer_rad, thickness, color, velocity, acceleration,
+                 x_coord, y_coord):
+        super().__init__(constellation, start_time, duration, outer_rad, thickness, color)
+        self.velocity = velocity
+        self.acceleration = acceleration
+        self.x_coord = x_coord
+        self.y_coord = y_coord
+
+    def run(self, current_song_data):
+        if self.velocity < 0:
+            return False
+
+        if not self.is_done(current_song_data):
+            elapsed_time = current_song_data[0] - self.start_time
+            current_velocity = self.velocity + self.acceleration * elapsed_time
+            # print(current_velocity)
+            self.outer_rad += current_velocity * elapsed_time
+
+            if current_velocity < 0:
+                return False
+
+            inner_rad = self.outer_rad - self.thickness
+            for led in self.constellation.leds:
+                led_x, led_y = led.xCoord_centroid - self.x_coord, led.yCoord_centroid - self.y_coord
+                distance = math.sqrt(led_x ** 2 + led_y ** 2)
+
+                if inner_rad <= distance <= self.outer_rad:
+                    led.set_color(self.color)
+
+            return True
+        else:
+            return False
+
+    def is_done(self, current_song_data):
+        if current_song_data[0] >= self.end_time or self.velocity < 0:
+            return True
