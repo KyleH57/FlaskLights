@@ -390,14 +390,15 @@ def worker(conn, frequency=16.0):
                 idle_rainbow_playing = False
 
                 # randint from 1 to 3
-                selection_var = random.randint(1, 3)
+                # selection_var = random.randint(1, 3)
+                selection_var = 3
                 if selection_var == 1:
                     setion_color = next_color(1.0, section_color)
                     c1 = next_color(1.0, section_color)
                     c2 = next_color(1.0, c1)
                     my_constellation.add_effect(BeatMapEffect(my_constellation, current_song_time, time_until_next_section, section_color, c1, c2))
                 elif selection_var == 2:
-                    my_constellation.add_effect(RainbowWaveEffect(my_constellation, current_song_time, time_until_next_section, 5000, 1550))
+                    my_constellation.add_effect(RainbowWaveEffect(my_constellation, current_song_time, time_until_next_section, 5000, 1550, 1.0))
                 elif selection_var == 3:
                     section_color = next_color(1.0, section_color)
                     c1 = next_color(1.0, section_color, 20, 35)
@@ -445,15 +446,17 @@ def worker(conn, frequency=16.0):
 
                     random_y = random.randint(-400, 400)
 
+                    RING_THICKNESS = 300
+
                     # see if beat is even or odd
                     if current_beat % 2 == 0:
                         my_constellation.add_effect(
-                            AnimatedRingEffect(my_constellation, current_song_time, 1.0, 50, 200, c1, random_vel,
+                            AnimatedRingEffect(my_constellation, current_song_time, 1.0, 50, RING_THICKNESS, c1, random_vel,
                                                golden_accel, random_x, random_y))
 
                     else:
                         my_constellation.add_effect(
-                            AnimatedRingEffect(my_constellation, current_song_time, 1.0, 50, 200, c2, random_vel,
+                            AnimatedRingEffect(my_constellation, current_song_time, 1.0, 50, RING_THICKNESS, c2, random_vel,
                                                golden_accel, random_x, random_y))
 
             if segment_changed:
@@ -477,7 +480,7 @@ def worker(conn, frequency=16.0):
                 # remove all effects
                 my_constellation.remove_all_effects()
 
-                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 7200, 1500, 750))
+                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 7200, 1500, 750, 0.9))
                 idle_rainbow_playing = True
 
             current_song_data = []
