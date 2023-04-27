@@ -1,39 +1,81 @@
+import time
+
+import effects as ef
+
+
 class Song:
-    def __init__(self, song_id, total_duration, section_times):
+    def __init__(self, constellation, local_timestamp, current_song_timeAPI, song_title, song_id, total_duration, sections, bars, beats, segments, tatums):
+        self.constellation = constellation
+        self.local_timestamp = local_timestamp
+        self.current_song_timeAPI = current_song_timeAPI
+        self.song_title = song_title
         self.song_id = song_id
         self.total_duration = total_duration
-        self.section_times = section_times
-        self.section_durations = []
 
-        # Calculate section durations
-        for i in range(len(section_times)):
-            if i == 0:
-                section_duration = section_times[i]
-            else:
-                section_duration = section_times[i] - section_times[i-1]
-            self.section_durations.append(section_duration)
 
-    def get_song_id(self):
-        return self.song_id
+        self.sections = sections
+        self.bars = []
+        self.beats = []
+        self.segments = []
+        self.tatums = []
 
-    def set_song_id(self, song_id):
-        self.song_id = song_id
+        self.is_special = False
 
-    def get_total_duration(self):
-        return self.total_duration
+        self.current_section = 0
+        self.last_section = None
 
-    def set_total_duration(self, total_duration):
-        self.total_duration = total_duration
+        self.current_song_time = 0  # used when playing song
+        self.last_beat = None
 
-    def get_section_times(self):
-        return self.section_times
 
-    def set_section_times(self, section_times):
-        self.section_times = section_times
 
-    def get_section_durations(self):
-        return self.section_durations
+    def add_effects_while_running(self):
 
+        self.update_time()
+
+
+
+        # if section changed, do something
+        if self.update_sections():
+            print("section changed")
+            self.constellation.add_effect(
+                ef.FillAllEffect(self.constellation, self.current_song_time, 0.5, (0, 255, 0)))
+
+    def section_changed(self):
+        if self.current_section != self.last_section:
+            return True
+        return False
+
+    def update_sections(self):
+        # ("updating sections")
+        for section in self.sections:
+            # print(section["start"], self.current_song_time, section["start"] + section["duration"])
+            if section["start"] <= self.current_song_time < section["start"] + section["duration"]:
+
+                self.current_section = self.sections.index(section)
+
+                if self.current_section != self.last_section:
+                    self.last_section = self.current_section
+                    return True
+                break
+
+    def update_time(self):
+        # this can be optimized
+        current_time = int(round(time.time() * 1000))
+        self.current_song_time = (current_time - self.local_timestamp) / 1000 + self.current_song_timeAPI
+
+    def get_current_section(sections, last_section, current_song_time):
+        section_changed = False
+        for section in sections:
+            if section["start"] <= current_song_time < section["start"] + section["duration"]:
+                current_section = sections.index(section)
+                if current_section != last_section:
+                    section_changed = True
+                break
+        else:
+            # If we didn't find a section, return the last section
+            current_section = last_section
+        return current_section, section_changed
 
 
 class SongLookup:
@@ -52,7 +94,11 @@ class SongLookup:
             SongLookup.__instance = self
             self.song_list = []
 
-        self.song_list.append(Song("63mL1DdcSFfxVJ9XGnSRQz", 176.97333, [0.0, 7.9221, 21.40309, 34.00896, 48.79903, 64.01683, 70.5222, 91.83413, 116.60762, 132.47868, 145.744, 163.1296]))
+        # self.song_list.append(Song("63mL1DdcSFfxVJ9XGnSRQz", 176.97333, [0.0, 7.9221, 21.40309, 34.00896, 48.79903, 64.01683, 70.5222, 91.83413, 116.60762, 132.47868, 145.744, 163.1296]))
+
+        self.song_list.append(Song("Run Wild", "2QQ5BiHTf2UnZ6LHYKLcx5",
+                                   159.4737, [0.0, 8.31746, 20.16123, 43.84421, 73.05014, 95.93646, 108.5845, 120.42278,
+                                              133.84496]))
 
     def get_song_by_id(self, id):
         for song in self.song_list:
