@@ -145,25 +145,9 @@ def random_color(max_brightness):
     return [int(r * 255), int(g * 255), int(b * 255)]
 
 
-# def next_color(max_brightness, last_color):
-#     # convert last color to hsv
-#     last_color = colorsys.rgb_to_hsv(last_color[0] / 255, last_color[1] / 255, last_color[2] / 255)
-#     h_old = last_color[0]
-#     h = h_old + random.randrange(13, 43) / 100
-#     if h > 1:
-#         h -= 1
-#     r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
-#     return [int(r * 255), int(g * 255), int(b * 255)]
 
-def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
-    # convert last color to hsv
-    last_color = colorsys.rgb_to_hsv(last_color[0] / 255, last_color[1] / 255, last_color[2] / 255)
-    h_old = last_color[0]
-    h = h_old + random.randrange(min_advance, max_advance) / 100
-    if h > 1:
-        h -= 1
-    r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
-    return [int(r * 255), int(g * 255), int(b * 255)]
+
+
 
 def check_match(string):
     table = ["value1", "value2", "value3"]  # example table of values
@@ -376,12 +360,12 @@ def worker(conn, frequency=16.0):
                 # remove all effects
                 my_constellation.remove_all_effects()
 
-                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 7200, 1500, 750, 0.9))
+                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 7200, 1500, 750, 1.0))
                 idle_rainbow_playing = True
-
-            current_song_data = []
-            current_song_data.append(time.time())
-            my_constellation.run_effects(current_song_data)
+            #
+            # current_song_data = []
+            # current_song_data.append(time.time())
+            my_constellation.run_effects(time.time())
 
 
             pass

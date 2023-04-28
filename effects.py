@@ -7,15 +7,19 @@ class Effect:
     def run(self, current_song_data):
         raise NotImplementedError("Subclasses must implement this method")
 
+    def is_done(self, current_song_data):
+        raise NotImplementedError("Subclasses must implement this method")
+
 
 class FillAllEffect(Effect):
-    def __init__(self, constellation, start_time, duration, color):
+    def __init__(self, constellation, start_time, duration, color, layer):
         super().__init__()
         self.constellation = constellation
         self.start_time = start_time
         self.duration = duration
         self.end_time = start_time + duration
         self.color = color
+        self.layer = layer
 
     def run(self, current_song_time):
         if not self.is_done(current_song_time):
@@ -28,6 +32,41 @@ class FillAllEffect(Effect):
     def is_done(self, current_song_time):
         if current_song_time >= self.end_time:
             return True
+
+
+class DebugCounterEffect:
+    def __init__(self, constellation, number, start_index, start_time, duration, color, layer):
+        super().__init__()
+        self.constellation = constellation
+        self.number = number
+        self.start_index = start_index
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.color = color
+        self.layer = layer
+
+    def run(self, current_time):
+        if not self.is_done(current_time):
+            binary_representation = bin(self.number)[2:]  # Remove the '0b' prefix
+            binary_length = len(binary_representation)
+
+            for i, bit in enumerate(reversed(binary_representation)):
+                led_position = self.start_index + i
+                if bit == '1':
+                    self.constellation.set_single_led(led_position, self.color)  # Turn the LED on with the specified color
+                else:
+                    self.constellation.set_single_led(led_position, (0, 0, 0))  # Turn the LED off
+
+            return True
+        else:
+            return False
+
+    def is_done(self, current_time):
+        if current_time >= self.end_time:
+            return True
+        else:
+            return False
 
 
 # class FillHexagonEffect(Effect):
@@ -133,44 +172,46 @@ class FillAllEffect(Effect):
 #             return True
 #
 #
-# class RainbowWaveEffect(Effect):
-#     def __init__(self, constellation, start_time, duration, wave_length, speed, saturation):
-#         super().__init__()
-#         self.constellation = constellation
-#         self.start_time = start_time
-#         self.duration = duration
-#         self.end_time = start_time + duration
-#         self.wave_length = wave_length
-#         self.speed = speed
-#         self.saturation = saturation
-#
-#     def run(self, current_song_data):
-#         if not self.is_done(current_song_data):
-#             elapsed_time = current_song_data[0] - self.start_time
-#             wave_progress = elapsed_time * self.speed  # How far along the wave is in mm
-#             self.rainbow_wave_x(self.constellation, self.wave_length, wave_progress)
-#             return True
-#         else:
-#             return False
-#
-#     def is_done(self, current_song_data):
-#         if current_song_data[0] >= self.end_time:
-#             return True
-#
-#     def rainbow_wave_x(self, constellation, wave_length, wave_progress):
-#         for led in constellation.leds:
-#             x_coord = led.xCoord_centroid
-#             hue = ((x_coord + wave_progress) % wave_length) / wave_length
-#             color_hsv = (hue, self.saturation, 1)  # Full saturation and value for a bright rainbow
-#             color_rgb = tuple(math.floor(i * 255) for i in colorsys.hsv_to_rgb(*color_hsv))
-#
-#             # convert HSV to RGB
-#             color_rgb = colorsys.hsv_to_rgb(color_hsv[0], color_hsv[1], color_hsv[2])
-#
-#             # convert float RGB values to integers in the range 0 to 255
-#             color_int = [int(c * 255) for c in color_rgb]
-#
-#             led.set_color(color_int)
+class RainbowWaveEffect(Effect):
+    def __init__(self, constellation, start_time, duration, wave_length, speed, saturation, layer=0):
+        super().__init__()
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.wave_length = wave_length
+        self.speed = speed
+        self.saturation = saturation
+        self.layer = layer
+
+    def run(self, current_song_time):
+        if not self.is_done(current_song_time):
+            elapsed_time = current_song_time - self.start_time
+            wave_progress = elapsed_time * self.speed  # How far along the wave is in mm
+            self.rainbow_wave_x(self.constellation, self.wave_length, wave_progress)
+            return True
+        else:
+            return False
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time:
+            return True
+
+    def rainbow_wave_x(self, constellation, wave_length, wave_progress):
+        for led in constellation.leds:
+            x_coord = led.xCoord_centroid
+            hue = ((x_coord + wave_progress) % wave_length) / wave_length
+            color_hsv = (hue, self.saturation, 1)  # Full saturation and value for a bright rainbow
+            color_rgb = tuple(math.floor(i * 255) for i in colorsys.hsv_to_rgb(*color_hsv))
+
+            # convert HSV to RGB
+            color_rgb = colorsys.hsv_to_rgb(color_hsv[0], color_hsv[1], color_hsv[2])
+
+            # convert float RGB values to integers in the range 0 to 255
+            color_int = [int(c * 255) for c in color_rgb]
+
+            led.set_color(color_int)
+
 #
 #
 # class DrawRingEffect(Effect):

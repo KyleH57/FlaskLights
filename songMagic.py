@@ -1,6 +1,20 @@
+import colorsys
+import random
 import time
 
 import effects as ef
+
+
+def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
+    # convert last color to hsv
+    last_color = colorsys.rgb_to_hsv(last_color[0] / 255, last_color[1] / 255, last_color[2] / 255)
+    h_old = last_color[0]
+    h = h_old + random.randrange(min_advance, max_advance) / 100
+    if h > 1:
+        h -= 1
+    r, g, b = colorsys.hsv_to_rgb(h, 1, max_brightness)
+    return [int(r * 255), int(g * 255), int(b * 255)]
+
 
 
 class Song:
@@ -14,19 +28,33 @@ class Song:
 
 
         self.sections = sections
-        self.bars = []
-        self.beats = []
-        self.segments = []
-        self.tatums = []
+        self.bars = bars
+        self.beats = beats
+        self.segments = segments
+        self.tatums = tatums
 
         self.is_special = False
+
+        self.current_song_time = 0  # used when playing song
 
         self.current_section = 0
         self.last_section = None
 
-        self.current_song_time = 0  # used when playing song
+        self.current_beat_index = 0
         self.last_beat = None
 
+        self.section_color = [255, 0, 0]
+
+    def is_special(self, song_id):
+        if song_id == "1sK28tbNrhhKWRKl920sDa":  # "Check This Out" by Oh The Larceny
+            self.is_special = True
+            self.effects.append(ef.FillAllEffect(self.constellation, self.get_beat_time(20), self.get_beat_duration(20), [255, 0, 0], 0))
+
+    def get_beat_time(self, beat_num):
+        return self.beats[beat_num]["start"]
+
+    def get_beat_duration(self, beat_num):
+        return self.beats[beat_num]["duration"]
 
 
     def add_effects_while_running(self):
@@ -37,14 +65,19 @@ class Song:
 
         # if section changed, do something
         if self.update_sections():
-            print("section changed")
-            self.constellation.add_effect(
-                ef.FillAllEffect(self.constellation, self.current_song_time, 0.5, (0, 255, 0)))
 
-    def section_changed(self):
-        if self.current_section != self.last_section:
-            return True
-        return False
+            self.section_color = next_color(1, self.section_color)
+
+            # get time until next section
+            time_until_next_section = self.sections[self.current_section]["start"] + self.sections[self.current_section]["duration"] - self.current_song_time
+
+            self.constellation.add_effect(
+                ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section, self.section_color, 0))
+
+        # if beat changed, do something
+        if self.update_beats():
+            self.constellation.add_effect(
+                ef.DebugCounterEffect(self.constellation, self.current_beat_index + 1, 0, self.current_song_time, self.get_beat_duration(self.current_beat_index), (255, 255, 255), 3))
 
     def update_sections(self):
         # ("updating sections")
@@ -56,6 +89,15 @@ class Song:
 
                 if self.current_section != self.last_section:
                     self.last_section = self.current_section
+                    return True
+                break
+
+    def update_beats(self):
+        for beat in self.beats:
+            if beat["start"] <= self.current_song_time < beat["start"] + beat["duration"]:
+                self.current_beat_index = self.beats.index(beat)
+                if self.current_beat_index != self.last_beat:
+                    self.last_beat = self.current_beat_index
                     return True
                 break
 

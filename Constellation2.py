@@ -123,6 +123,7 @@ class Constellation:
 
 
         self.effects = []  # list of currently running effects
+        self.overlays = []  # list of currently running overlays
 
         self._create_constellation()
 
@@ -283,25 +284,7 @@ class Constellation:
 
         return orange_dots
 
-    # def find_hexagons2(self):
-    #     segment_length = self.segments[0].total_length
-    #     hexagons = {}
-    #
-    #     for node in self.nodes:
-    #         x, y = node.x, node.y
-    #         nearby_node = self.get_nearby_node(x - segment_length * 2, y)
-    #         if nearby_node is not None:
-    #             lower_y_node = self.get_nearby_node(x - segment_length, y - segment_length)
-    #             higher_y_node = self.get_nearby_node(x - segment_length, y + segment_length)
-    #             if lower_y_node is not None or higher_y_node is not None:
-    #                 hexagon_nodes = [node, nearby_node, lower_y_node or higher_y_node]
-    #                 led_indices = []
-    #                 for hex_node in hexagon_nodes:
-    #                     for segment in hex_node.segment_neighbors:
-    #                         led_indices.extend(range(segment.start_index, segment.start_index + segment.num_leds))
-    #                 hexagons[len(hexagons)] = list(set(led_indices))
-    #
-    #     return hexagons
+
 
     def find_hex_segments(self, node):
         hex_segments = []
@@ -483,9 +466,25 @@ class Constellation:
             if effect.is_done(song_object.current_song_time):
                 self.effects.remove(effect)
 
-        # run all remaining effects
+        # # run all remaining effects
+        # for effect in self.effects:
+        #     effect.run(song_object.current_song_time)
+
+        effect_layers = {}
+        max_layer = -1  # initialize max layer number to -1
+
+        # group effects by layer number and find max layer number
         for effect in self.effects:
-            effect.run(song_object.current_song_time)
+            if effect.layer not in effect_layers:
+                effect_layers[effect.layer] = []
+            effect_layers[effect.layer].append(effect)
+            max_layer = max(max_layer, effect.layer)
+
+        # loop through all layers from 0 to max_layer
+        for layer in range(max_layer + 1):
+            if layer in effect_layers:
+                for effect in effect_layers[layer]:
+                    effect.run(song_object.current_song_time)
 
         # copy data from leds to pixels
         for i in range(self.num_leds):
