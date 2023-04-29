@@ -197,6 +197,54 @@ class LightItUp(Effect):
             return True
 
 
+class BeachBall(Effect):
+    def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time, layer=1):
+        super().__init__()
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.color = color
+        self.layer = layer
+        self.fade_in_time = fade_in_time
+        self.fade_out_time = fade_out_time
+        self.pattern_number = pattern_number
+
+        self.sub_effects = []
+
+        hex_duration = 1.5
+
+        hex_start_time = start_time
+
+        self.stagger = stagger
+
+        if color is None:
+            ball_colors = [[255, 0, 0], [255, 255, 0], [0, 255, 0], [0, 255, 255], [0, 0, 255], [255, 0, 255]]
+
+
+
+        if pattern_number == 0:
+            hex_indices = [6, 11, 8, 3, 4, 5]
+        elif pattern_number == 1:
+            hex_indices = [6, 5, 4, 3, 8, 11]
+
+        for i, index in enumerate(hex_indices):
+            start_time = hex_start_time + i * stagger
+            self.sub_effects.append(
+                FillHexagonEffect(constellation, start_time, hex_duration, ball_colors[i], index, layer, fade_in_time,
+                                  fade_out_time))
+
+    def run(self, current_song_time):
+        if not self.is_done(current_song_time) and current_song_time >= self.start_time:
+            for effect in self.sub_effects:
+                effect.run(current_song_time)
+            return True
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time:
+            return True
+
+
 #
 #
 # class BeatMapEffect(Effect):
