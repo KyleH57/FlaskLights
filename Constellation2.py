@@ -436,7 +436,7 @@ class Constellation:
     def remove_all_effects(self):
         self.effects = []
 
-    def run_effects(self, current_song_data):
+    def run_effects(self, current_song_data):  # do not delete, needed for backwards compatibility with idle rainbow
 
         self.clear()
 

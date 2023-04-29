@@ -16,9 +16,9 @@ def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
     return [int(r * 255), int(g * 255), int(b * 255)]
 
 
-
 class Song:
-    def __init__(self, constellation, local_timestamp, current_song_timeAPI, song_title, song_id, total_duration, sections, bars, beats, segments, tatums):
+    def __init__(self, constellation, local_timestamp, current_song_timeAPI, song_title, song_id, total_duration,
+                 sections, bars, beats, segments, tatums):
         self.constellation = constellation
         self.local_timestamp = local_timestamp
         self.current_song_timeAPI = current_song_timeAPI
@@ -26,14 +26,13 @@ class Song:
         self.song_id = song_id
         self.total_duration = total_duration
 
-
         self.sections = sections
         self.bars = bars
         self.beats = beats
         self.segments = segments
         self.tatums = tatums
 
-        self.is_special = False
+        self.mapped_song = False
 
         self.current_song_time = 0  # used when playing song
 
@@ -45,10 +44,66 @@ class Song:
 
         self.section_color = [255, 0, 0]
 
+        print(self.song_id)
+
+        self.is_special(song_id)
+
     def is_special(self, song_id):
         if song_id == "1sK28tbNrhhKWRKl920sDa":  # "Check This Out" by Oh The Larceny
-            self.is_special = True
-            self.effects.append(ef.FillAllEffect(self.constellation, self.get_beat_time(20), self.get_beat_duration(20), [255, 0, 0], 0))
+            print("special song detected")
+            check_it_out_time = 33
+            self.mapped_song = True
+            self.section_color = next_color(1, self.section_color)
+            self.constellation.add_effect(
+                ef.FillAllEffect(self.constellation, self.get_beat_time(117), 2, self.section_color, 1))  # Let
+            print("added effect" + str(self.get_beat_time(115)))
+            self.section_color = next_color(1, self.section_color, 25, 35)
+            self.constellation.add_effect(
+                ef.FillAllEffect(self.constellation, self.get_beat_time(119), 1.75, self.section_color, 1))  # Me
+            self.section_color = next_color(1, self.section_color, 25, 35)
+
+            self.constellation.add_effect(ef.AnimatedRingEffect(self.constellation, self.get_beat_time(122), 3.2, 400,
+                                                                10500, self.section_color, 3000, 3000 * -1.618, -500, 0,
+                                                                1, True))  # Show You
+
+
+            self.section_color = next_color(1, self.section_color)
+
+            # self.constellation.add_effect(
+            #     ef.FillAllEffect(self.constellation, check_it_out_time, .75, self.section_color, 1))  # Check it out
+            #
+            self.constellation.add_effect(
+                ef.AnimatedRingEffect(self.constellation, check_it_out_time, 0.75,
+                                      200, 400, self.section_color, 1200, 1200 * -1.618, 0,
+                                      0, 2, False))  # Check it out
+
+            self.section_color = next_color(1, self.section_color)
+
+            stagger = 0.09
+
+            # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, 35, 1, self.section_color, 7, 1, 0.25, 0.25))
+            self.constellation.add_effect(
+                ef.LightItUp(self.constellation, 34.0, 1.2, (255, 255, 255), 0, stagger, 0.05, 0.2, 1))
+            self.constellation.add_effect(
+                ef.LightItUp(self.constellation, 35.8, 1.2, (255, 255, 255), 1, stagger, 0.05, 0.2, 1))
+
+            self.constellation.add_effect(
+                ef.AnimatedRingEffect(self.constellation, 37, 3.2, 200, 400, self.section_color, 1200, 1200 * -1.618, 0,
+                                      0, 2, False))
+            self.section_color = next_color(1, self.section_color)
+            self.constellation.add_effect(
+                ef.LightItUp(self.constellation, 38.2, 1.2, (255, 255, 255), 0, stagger, 0.05, 0.2, 1))
+            self.constellation.add_effect(
+                ef.LightItUp(self.constellation, 39.5, 1.2, (255, 255, 255), 1, stagger, 0.05, 0.2, 1))
+
+            self.constellation.add_effect(
+                ef.AnimatedRingEffect(self.constellation, 41.0, 3.2, 200, 400, self.section_color, 1200, 1200 * -1.618,
+                                      0, 0, 2, False))
+
+            self.constellation.add_effect(
+                ef.LightItUp(self.constellation, 41.7, 1.2, (255, 255, 255), 0, stagger, 0.05, 0.2, 1))
+            self.constellation.add_effect(
+                ef.LightItUp(self.constellation, 43.5, 1.2, (255, 255, 255), 1, stagger, 0.05, 0.2, 1))
 
     def get_beat_time(self, beat_num):
         return self.beats[beat_num]["start"]
@@ -56,33 +111,30 @@ class Song:
     def get_beat_duration(self, beat_num):
         return self.beats[beat_num]["duration"]
 
-
     def add_effects_while_running(self):
 
         self.update_time()
 
-
-
         # if section changed, do something
-        if self.update_sections():
-
+        if self.update_sections() and not self.mapped_song:
             self.section_color = next_color(1, self.section_color)
 
             # get time until next section
-            time_until_next_section = self.sections[self.current_section]["start"] + self.sections[self.current_section]["duration"] - self.current_song_time
+            time_until_next_section = self.sections[self.current_section]["start"] + \
+                                      self.sections[self.current_section]["duration"] - self.current_song_time
 
             self.constellation.add_effect(
-                ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section, self.section_color, 0))
+                ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section,
+                                 self.section_color, 0))
 
         # if beat changed, do something
         if self.update_beats():
             self.constellation.add_effect(
-                ef.DebugCounterEffect(self.constellation, self.current_beat_index + 1, 0, self.current_song_time, self.get_beat_duration(self.current_beat_index), (255, 255, 255), 3))
+                ef.DebugCounterEffect(self.constellation, self.current_beat_index + 1, 0, self.current_song_time,
+                                      self.get_beat_duration(self.current_beat_index), (255, 255, 255), 3))
 
     def update_sections(self):
-        # ("updating sections")
         for section in self.sections:
-            # print(section["start"], self.current_song_time, section["start"] + section["duration"])
             if section["start"] <= self.current_song_time < section["start"] + section["duration"]:
 
                 self.current_section = self.sections.index(section)

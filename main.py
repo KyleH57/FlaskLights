@@ -225,7 +225,7 @@ def worker(conn, frequency=16.0):
     SEGMENT_LED_SPACING = 15
     SEGMENT_EDGE_SPACING = 13
     my_constellation = Constellation(ARRANGEMENT, NUM_LEDS_SEGMENT, SEGMENT_LED_SPACING, SEGMENT_EDGE_SPACING, MAX_BRIGHTNESS)
-    my_constellation.plot_constellation()
+    # my_constellation.plot_constellation()
 
 
 
@@ -333,7 +333,7 @@ def worker(conn, frequency=16.0):
                 # print num of tatums
                 print("num of tatums: " + str(len(tatums)))
 
-
+                my_constellation.remove_all_effects()
 
                 song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id, song_duration, sections, beats, segments, tatums, analysis_data["track"]["duration"])
 
