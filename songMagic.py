@@ -135,11 +135,15 @@ class Song:
                 ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section,
                                  self.section_color, 0))
 
-        # # if beat changed, do something
-        # if self.update_beats():
-        #     self.constellation.add_effect(
-        #         ef.DebugCounterEffect(self.constellation, self.current_beat_index + 1, 0, self.current_song_time,
-        #                               self.get_beat_duration(self.current_beat_index), (255, 255, 255), 3))
+        # if beat changed, do something
+        if self.update_beats():
+            # self.constellation.add_effect(
+            #     ef.DebugCounterEffect(self.constellation, self.current_beat_index + 1, 0, self.current_song_time,
+            #                           self.get_beat_duration(self.current_beat_index), (255, 255, 255), 3))
+            # generate random x y integers between -1000 and 1000
+            x = random.randint(-1500, 1500)
+            y = random.randint(-1000, 1000)
+            # self.constellation.add_effect(ef.AnimatedRingEffect(self.constellation, self.current_song_time, 0.5, 200, 400, (255, 255, 255), 1200, 1200 * -1.618, x, y, 1, False))
 
     def update_sections(self):
         for section in self.sections:

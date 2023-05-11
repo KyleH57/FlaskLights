@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="refresh" content="{{ refresh_interval }}">
+    <title>My Flask Page</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+  </head>
+  <body>
+    <h1>Orion</h1>
+    <p>The next song will start in {{ refresh_interval }} seconds.</p>
+    <p>The current song playing is {{ song }} by {{ artist }}.</p>
+    <p>The song id is {{ song_id }}.</p>
+    <div id="loudness-chart">{{ loudness_chart_html|safe }}</div>
+
+    <div id="conf-chart">{{ section_confidences_chart_html|safe }}</div>
+
+  </body>
+</html>

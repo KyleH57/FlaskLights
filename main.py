@@ -20,6 +20,10 @@ import sys
 import board
 import neopixel
 
+# frontend
+import plotly.graph_objs as go
+
+
 
 # LED CTRL
 # import ledCtrl
@@ -125,18 +129,96 @@ def index():
         # send timestamp, currently playing data, and audio analysis data to the child process
         parent_conn.send([local_timestamp, currently_playing_data, resp.json()])
 
-
-
     else:
         return "Request failed: " + resp.text, resp.status_code
+
+    # Get loudness of sections
+    sections = []
+    beats_confidence_per_section = []
+    for section in resp.json()["sections"]:
+        sections.append([section["start"], section["duration"], section["loudness"]])  # start of section
+        beats_in_section = [beat for beat in resp.json()["beats"] if
+                            section["start"] <= beat["start"] < (section["start"] + section["duration"])]
+        avg_confidence = sum(beat["confidence"] for beat in beats_in_section) / len(
+            beats_in_section) if beats_in_section else 0
+        beats_confidence_per_section.append([section["start"], avg_confidence])
+        beats_confidence_per_section.append([section["start"] + section["duration"], avg_confidence])  # end of section
+
+    loudness_data = {
+        'x': [section[0] for section in sections],  # start time of each section
+        'y': [section[2] for section in sections]  # loudness of each section
+    }
+
+    loudness_chart = go.Scatter(
+        x=loudness_data['x'],
+        y=loudness_data['y'],
+        mode='lines+markers',  # add markers
+        line=dict(shape='hv'),  # horizontal - vertical lines
+        name='Loudness',
+        yaxis='y1'
+    )
+
+    # Get beats data
+    beats_data = {
+        'x': [beat[0] for beat in beats_confidence_per_section],  # start time of each beat
+        'y': [beat[1] for beat in beats_confidence_per_section]  # average confidence of each beat per section
+    }
+
+    beats_chart = go.Scatter(
+        x=beats_data['x'],
+        y=beats_data['y'],
+        mode='lines+markers',  # add markers
+        line=dict(shape='hv'),  # horizontal - vertical lines
+        name='Beats',
+        yaxis='y2'
+    )
+
+    layout = go.Layout(
+        title='Loudness vs Time & Average Beats Confidence per Section',
+        xaxis=dict(title='Time (s)'),
+        yaxis=dict(title='Loudness (dBFS)', range=[-10, -2]),  # Set range for loudness
+        yaxis2=dict(title='Average Confidence', overlaying='y', side='right', range=[0, 1])  # Set range for confidence
+    )
+
+    fig = go.Figure(data=[loudness_chart, beats_chart], layout=layout)
+    loudness_chart_html = fig.to_html(full_html=False)
+
+    # Get section confidences
+    section_confidences = []
+    for section in resp.json()["sections"]:
+        section_confidences.append([section["start"], section["confidence"]])  # start of section
+        section_confidences.append([section["start"] + section["duration"], section["confidence"]])  # end of section
+
+    section_confidences_data = {
+        'x': [section[0] for section in section_confidences],  # start time of each section
+        'y': [section[1] for section in section_confidences]  # confidence of each section
+    }
+
+    section_confidences_chart = go.Scatter(
+        x=section_confidences_data['x'],
+        y=section_confidences_data['y'],
+        mode='lines+markers',  # add markers
+        line=dict(shape='hv'),  # horizontal - vertical lines
+        name='Section Confidence'
+    )
+
+    layout = go.Layout(
+        title='Section Confidence vs Time',
+        xaxis=dict(title='Time (s)'),
+        yaxis=dict(title='Section Confidence')
+    )
+
+    fig = go.Figure(data=[section_confidences_chart], layout=layout)
+    section_confidences_chart_html = fig.to_html(full_html=False)
 
     song = currently_playing_data["item"]["name"]  # set the song title here
     artist = currently_playing_data["item"]["artists"][0][
         "name"]  # set the artist name here
+    web_song_id = currently_playing_data["item"]["id"]
     refresh_interval = math.ceil(
         (currently_playing_data["item"]["duration_ms"] - currently_playing_data["progress_ms"]) / 1000)
-    return render_template('index.html', song=song, artist=artist, refresh_interval=refresh_interval)
-    # return siteTextData
+    return render_template('index.html', song=song, artist=artist, song_id=web_song_id, refresh_interval=refresh_interval,
+                           loudness_chart_html=loudness_chart_html, section_confidences_chart_html=section_confidences_chart_html)
 
 
 def random_color(max_brightness):
@@ -266,7 +348,6 @@ def worker(conn, frequency=16.0):
                 # print("current_song_timeAPI: " + str(current_song_timeAPI))
 
                 analysis_data = data[2]
-                # print("audio analysis")
 
                 # add the sections to the array
                 sections = analysis_data["sections"]
@@ -277,8 +358,7 @@ def worker(conn, frequency=16.0):
                 # add beat data to the array
                 beats = analysis_data["beats"]
 
-                # print the length of the beats array
-                # print("beats length: " + str(len(beats)))
+
 
                 # add segment data to the array
                 segments = analysis_data["segments"]
@@ -319,10 +399,9 @@ def worker(conn, frequency=16.0):
                 for section in sections:
                     sections_only_times.append(section["start"])
 
-                print(sections_only_times)
 
                 # print num of sections
-                print("num of sections: " + str(len(sections)))
+                # print("num of sections: " + str(len(sections)))
 
                 # print num of beats
                 print("num of beats: " + str(len(beats)))
