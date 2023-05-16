@@ -105,6 +105,79 @@ class FillHexagonEffectOld(Effect):
             return True
 
 
+class HexagonProgressEffect(Effect):
+    def __init__(self, constellation, start_time, duration, color, hexagon_index, layer=1, acceleration_fraction=0):
+        super().__init__()
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.color = color
+        self.layer = layer
+        self.acceleration_fraction = acceleration_fraction
+
+        self.hexagon_obj = self.constellation.hexagons[hexagon_index]
+
+        self.progress = 0
+
+
+    def run(self, current_song_time):
+
+        if self.acceleration_fraction == 0:
+            self.progress = (current_song_time - self.start_time) / self.duration
+        else:
+            # special case where there is no coasting
+            t1 = self.start_time + self.duration / 2
+            accel = 4
+            v1 = accel * self.duration / 2
+
+            if current_song_time < t1:
+                self.progress = 0.5 * accel * (current_song_time - self.start_time) ** 2
+            else:
+                self.progress = -0.5 * accel * (current_song_time - self.start_time - 0.5) ** 2 + v1 * \
+                                (current_song_time - self.start_time - 0.5) + 0.5
+
+
+
+        leds_to_set = round(90 * self.progress)
+        if leds_to_set > 90:
+            leds_to_set = 90
+        for i in range(leds_to_set):
+            self.constellation.set_single_led(self.hexagon_obj.led_angle_coords[i][1], self.color)
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time:
+            return True
+
+
+class SCurve:  # dead code
+    def __init__(self, start_time, duration, acceleration_time):
+        if acceleration_time > duration / 2:
+            raise ValueError("Acceleration time must be less than or equal to half of the total duration.")
+
+        self.start_time = start_time
+        self.duration = duration
+        self.acceleration_time = acceleration_time
+        self.acceleration = 1 / (2 * acceleration_time / duration)  # 1 represents the total change in position.
+        self.final_time = start_time + duration
+
+    def update(self, current_time):
+        if current_time < self.start_time:
+            return 0
+        elif current_time > self.final_time:
+            return 1
+        else:
+            t = (current_time - self.start_time) / self.duration
+            if t < self.acceleration_time / self.duration:  # Acceleration phase
+                return 0.5 * self.acceleration * t**2
+            elif t < 1 - self.acceleration_time / self.duration:  # Uniform motion phase
+                return t
+            else:  # Deceleration phase
+                dt = 1 - t
+                return 1 - 0.5 * self.acceleration * dt**2
+
+
+# old stuff, kept to not break things
 class FillHexagonEffect(Effect):
     def __init__(self, constellation, start_time, duration, color, hexagon_index, layer=1, fade_in_time=0,
                  fade_out_time=0):
@@ -151,7 +224,8 @@ class FillHexagonEffect(Effect):
 
 
 class LightItUp(Effect):
-    def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time, layer=1):
+    def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time,
+                 layer=1):
         super().__init__()
         self.constellation = constellation
         self.start_time = start_time
@@ -172,8 +246,6 @@ class LightItUp(Effect):
         hex_start_time = start_time
 
         self.stagger = stagger
-
-
 
         if pattern_number == 0:
             hex_indices = [0, 4, 2, 5, 1]
@@ -198,7 +270,8 @@ class LightItUp(Effect):
 
 
 class BeachBall(Effect):
-    def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time, layer=1):
+    def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time,
+                 layer=1):
         super().__init__()
         self.constellation = constellation
         self.start_time = start_time
@@ -220,8 +293,6 @@ class BeachBall(Effect):
 
         if color is None:
             ball_colors = [[255, 0, 0], [255, 255, 0], [0, 255, 0], [0, 255, 255], [0, 0, 255], [255, 0, 255]]
-
-
 
         if pattern_number == 0:
             hex_indices = [6, 11, 8, 3, 4, 5]

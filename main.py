@@ -46,7 +46,6 @@ with open("config.cfg", "r") as f:
     SPOTIFY_CLIENT_SECRET = f.read().strip()
 
 
-print("SECRET: " + SPOTIFY_CLIENT_SECRET)
 
 SPOTIFY_REDIRECT_URI = "http://192.168.0.152:5000/callback"
 SPOTIFY_AUTHORIZATION_URL = "https://accounts.spotify.com/authorize"
@@ -212,12 +211,18 @@ def index():
     section_confidences_chart_html = fig.to_html(full_html=False)
 
     song = currently_playing_data["item"]["name"]  # set the song title here
+
     artist = currently_playing_data["item"]["artists"][0][
         "name"]  # set the artist name here
+
     web_song_id = currently_playing_data["item"]["id"]
+
+    web_song_bpm = resp.json()["track"]["tempo"]
+
+
     refresh_interval = math.ceil(
         (currently_playing_data["item"]["duration_ms"] - currently_playing_data["progress_ms"]) / 1000)
-    return render_template('index.html', song=song, artist=artist, song_id=web_song_id, refresh_interval=refresh_interval,
+    return render_template('index.html', song=song, artist=artist, song_id=web_song_id, song_bpm=web_song_bpm, refresh_interval=refresh_interval,
                            loudness_chart_html=loudness_chart_html, section_confidences_chart_html=section_confidences_chart_html)
 
 
@@ -414,7 +419,7 @@ def worker(conn, frequency=16.0):
 
                 my_constellation.remove_all_effects()
 
-                song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id, song_duration, sections, beats, segments, tatums, analysis_data["track"]["duration"])
+                song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id, song_duration, sections, bars, beats, segments, tatums, analysis_data["track"]["time_signature"])
 
         # end of do once
 

@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import board
 import neopixel
 import colorsys
+
+
 def is_near(point1, point2, tolerance=1):
     """
     Check if two points are within a certain distance of each other on the real number line or in the 2D coordinate plane.
@@ -43,7 +45,8 @@ class WS2812LED:
 
     # string representation of the LED
     def __str__(self):
-        return "LED at " + str(self.xCoord) + ", " + str(self.yCoord) + " centroid at " + str(self.xCoord_centroid) + ", " + str(self.yCoord_centroid) + " with color " + str(self.color)
+        return "LED at " + str(self.xCoord) + ", " + str(self.yCoord) + " centroid at " + str(
+            self.xCoord_centroid) + ", " + str(self.yCoord_centroid) + " with color " + str(self.color)
 
     def set_color(self, color):
         self.color = color
@@ -82,7 +85,6 @@ class Segment:
         self.x_start = x_start
         self.y_start = y_start
 
-
         self.angle = math.radians(angle_degrees)  # pay attention to units
         self.num_leds = num_leds
         self.spacing = spacing
@@ -105,6 +107,47 @@ class Segment:
         return f"Segment({self.x_start}, {self.y_start}, {math.degrees(self.angle)}, {self.num_leds}, {self.spacing}, {self.edge_spacing}, {self.start_index}, {self.panel})"
 
 
+class Hexagon:
+    def __init__(self, hex_node, constellation):
+        self.constellation = constellation
+        self.hex_segments = self.constellation.find_hex_segments(hex_node)
+        self.led_indices = []  # only contains the start index of each segment
+        self.led_angle_coords = []  # 2d list that contains angle in radians relative to the hex centroid and led index
+        self.centroid_x = hex_node.x - self.constellation.segments[0].total_length - self.constellation.centroid_x
+        self.centroid_y = hex_node.y - self.constellation.centroid_y
+        self.num_leds = 6 * self.constellation.num_leds_segment
+
+        for i in range(len(self.hex_segments)):
+            self.led_indices.append(self.hex_segments[i].start_index)
+
+        # set all led angle coordinates
+        for i in self.led_indices:
+            for j in range(self.constellation.num_leds_segment):
+                led = self.constellation.leds[i + j]
+                led_x = led.xCoord_centroid - self.centroid_x
+                led_y = led.yCoord_centroid - self.centroid_y
+                angle = math.atan2(led_y, led_x)
+
+
+                if angle < 0:
+                    angle += 2 * math.pi
+
+
+
+                self.led_angle_coords.append([angle, i + j, led_x, led_y])
+
+        # sort led angle coordinates by ascending angle
+        self.led_angle_coords.sort(key=lambda x: x[0])
+
+    def debug(self):
+        print("Hexagon centroid: " + str(self.centroid_x) + ", " + str(self.centroid_y))
+        print("Hexagon led indices: " + str(self.led_indices))
+        print("Hexagon led angle coordinates: " + str(self.led_angle_coords))
+
+
+
+
+
 class Constellation:
     def __init__(self, angles, num_leds_segment, spacing, edge_spacing, brightness):
         self.angles = angles.split(',')
@@ -118,16 +161,14 @@ class Constellation:
 
         self.segments = []
         self.nodes = []
-        self.leds = []  # WS2812LED objects?
+        self.leds = []  # WS2812LED objects
+        self.hexagons = []
         self.num_leds = 0
-
 
         self.effects = []  # list of currently running effects
         self.overlays = []  # list of currently running overlays
 
         self._create_constellation()
-
-
 
         for segment in self.segments:
             for i in range(segment.num_leds):
@@ -140,6 +181,12 @@ class Constellation:
         for led in self.leds:
             led.xCoord_centroid = led.xCoord - self.centroid_x
             led.yCoord_centroid = led.yCoord - self.centroid_y
+
+        # populate the hexagons list
+        stuff5623 = self.find_hexagons()
+
+        for hex_node in stuff5623:
+            self.hexagons.append(Hexagon(hex_node, self))
 
     def _create_constellation(self):
         print("Creating constellation...")
@@ -165,28 +212,27 @@ class Constellation:
 
             if 'r' not in angle_str:  # if not a reversed segment
 
-
                 # add segments to nodes
                 start_node.segment_neighbors.append(segment)
                 end_node.segment_neighbors.append(segment)
 
                 # if not first node?
-                #if prev_node:
-                    # set the neighbor of the node at the beginning of the current
-                    # segment to the node at the end of the current segment
+                # if prev_node:
+                # set the neighbor of the node at the beginning of the current
+                # segment to the node at the end of the current segment
                 start_node.neighbor_nodes.append(end_node)
 
                 # set the neighbor of the node at the end of the current segment
                 # to the node at the beginning of the current segment
                 end_node.neighbor_nodes.append(start_node)
 
-                    # prev_node.neighbor_nodes.append(end_node)
+                # prev_node.neighbor_nodes.append(end_node)
 
                 prev_node = end_node
                 x, y = segment.x_end, segment.y_end
             else:  # if a reversed segment
-                #start_node = prev_node
-                #end_node = prev_node
+                # start_node = prev_node
+                # end_node = prev_node
 
                 start_node.neighbor_nodes.append(end_node)
                 end_node.neighbor_nodes.append(start_node)
@@ -215,9 +261,6 @@ class Constellation:
             segment.y_start_centroid = segment.y_start - self.centroid_y
             segment.x_end_centroid = segment.x_end - self.centroid_x
             segment.y_end_centroid = segment.y_end - self.centroid_y
-
-
-
 
     def _find_or_create_node(self, x, y):
         for node in self.nodes:
@@ -259,6 +302,7 @@ class Constellation:
             print(f"  End node index: {segment.end_node.node_index}")
             print("")
 
+    # generates a list of all the special hexagon nodes
     def find_hexagons(self):
         segment_length = self.segments[0].total_length
         hexagon_list = []
@@ -274,6 +318,7 @@ class Constellation:
 
         return hexagon_list
 
+    # generates a list of all the centroids of the hexagons in the list that is passed in
     def find_orange_dots(self, hexagon_list):
         segment_length = self.segments[0].total_length
         orange_dots = []
@@ -284,8 +329,7 @@ class Constellation:
 
         return orange_dots
 
-
-
+    # a
     def find_hex_segments(self, node):
         hex_segments = []
         current_node = node
@@ -449,7 +493,6 @@ class Constellation:
         for effect in self.effects:
             effect.run(current_song_data)
 
-
         # copy data from leds to pixels
         for i in range(self.num_leds):
             self.pixels[i] = self.leds[i].get_color()
@@ -492,6 +535,3 @@ class Constellation:
 
         # write data to pixels
         self.pixels.show()
-
-
-

@@ -18,7 +18,7 @@ def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
 
 class Song:
     def __init__(self, constellation, local_timestamp, current_song_timeAPI, song_title, song_id, total_duration,
-                 sections, bars, beats, segments, tatums):
+                 sections, bars, beats, segments, tatums, time_signature=4):
         self.constellation = constellation
         self.local_timestamp = local_timestamp
         self.current_song_timeAPI = current_song_timeAPI
@@ -31,6 +31,8 @@ class Song:
         self.beats = beats
         self.segments = segments
         self.tatums = tatums
+
+        self.time_signature = time_signature
 
         self.mapped_song = False
 
@@ -131,19 +133,24 @@ class Song:
             time_until_next_section = self.sections[self.current_section]["start"] + \
                                       self.sections[self.current_section]["duration"] - self.current_song_time
 
-            self.constellation.add_effect(
-                ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section,
-                                 self.section_color, 0))
+            # self.constellation.add_effect(
+            #     ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section,
+            #                      self.section_color, 0))
+            self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, time_until_next_section, self.section_color, 7))
+
 
         # if beat changed, do something
         if self.update_beats():
-            # self.constellation.add_effect(
-            #     ef.DebugCounterEffect(self.constellation, self.current_beat_index + 1, 0, self.current_song_time,
-            #                           self.get_beat_duration(self.current_beat_index), (255, 255, 255), 3))
-            # generate random x y integers between -1000 and 1000
-            x = random.randint(-1500, 1500)
-            y = random.randint(-1000, 1000)
-            # self.constellation.add_effect(ef.AnimatedRingEffect(self.constellation, self.current_song_time, 0.5, 200, 400, (255, 255, 255), 1200, 1200 * -1.618, x, y, 1, False))
+            if self.time_signature == 4:
+                if self.current_beat_index % 2 == 0:
+                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index-1) + self.get_beat_duration(self.current_beat_index + 1), [255, 0, 0], 2))
+                    pass
+                else:
+                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index-1) + self.get_beat_duration(self.current_beat_index + 1), self.section_color, 10))
+                    pass
+            else:
+                print("Time signature not supported")
+                print(self.time_signature)
 
     def update_sections(self):
         for section in self.sections:
@@ -161,9 +168,10 @@ class Song:
             if beat["start"] <= self.current_song_time < beat["start"] + beat["duration"]:
                 self.current_beat_index = self.beats.index(beat)
                 if self.current_beat_index != self.last_beat:
+
                     self.last_beat = self.current_beat_index
-                    return True
-                break
+                    return True  # beat has changed
+                return False  # beat has not changed
 
     def update_time(self):
         # this can be optimized
