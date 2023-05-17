@@ -121,6 +121,7 @@ class Song:
         return self.beats[beat_num]["start"]
 
     def get_beat_duration(self, beat_num):
+        # ("Beat num: " + str(beat_num))
         return self.beats[beat_num]["duration"]
 
     def add_effects_while_running(self):
@@ -146,12 +147,14 @@ class Song:
         # if beat changed, do something
         if self.update_beats():
             if self.time_signature == 4:
-                if self.current_beat_index % 2 == 0 and self.current_beat_index + 2 < len(self.beats):
-                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color3, 2, 1, 0.5))
-                    pass
-                else:
-                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color2, 10, 1, 0.5))
-                    pass
+                # print("Beat index: " + str(self.current_beat_index), "Length of beats: " + str(len(self.beats)))
+                if self.current_beat_index + 2 < len(self.beats):
+                    if self.current_beat_index % 2 == 0:  # do something on a 1,3 or 2,4 beat when time signature is 4/4
+                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color3, 2, 1, 0.5))
+                        pass
+                    else:
+                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color2, 10, 1, 0.5))
+                        pass
             else:
                 print("Time signature not supported")
                 print(self.time_signature)
