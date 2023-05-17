@@ -141,8 +141,8 @@ class Song:
             # self.constellation.add_effect(
             #     ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section,
             #                      self.section_color, 0))
-            self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, time_until_next_section, self.section_color, 7))
-
+            self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, time_until_next_section, self.section_color, (111, 111, 111), 7, 2, 0))
+            self.constellation.add_effect(ef.AnimatedRingEffect(self.constellation, self.current_song_time, 1, 200, 400, self.section_color, 1200, 1200 * -1.618, 0, 0, 1, False))
 
         # if beat changed, do something
         if self.update_beats():
@@ -150,10 +150,10 @@ class Song:
                 # print("Beat index: " + str(self.current_beat_index), "Length of beats: " + str(len(self.beats)))
                 if self.current_beat_index + 2 < len(self.beats):
                     if self.current_beat_index % 2 == 0:  # do something on a 1,3 or 2,4 beat when time signature is 4/4
-                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color3, 2, 1, 0.5))
+                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color3, 2, 2, 0.5))
                         pass
                     else:
-                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color2, 10, 1, 0.5))
+                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color2,  10, 2, 0.5))
                         pass
             else:
                 print("Time signature not supported")

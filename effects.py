@@ -106,13 +106,14 @@ class FillHexagonEffectOld(Effect):
 
 
 class HexagonProgressEffect(Effect):
-    def __init__(self, constellation, start_time, duration, color, hexagon_index, layer=1, acceleration_fraction=0):
+    def __init__(self, constellation, start_time, duration, color, bg_color, hexagon_index, layer=1, acceleration_fraction=0):
         super().__init__()
         self.constellation = constellation
         self.start_time = start_time
         self.duration = duration
         self.end_time = start_time + duration
         self.color = color
+        self.bg_color = bg_color
         self.layer = layer
         self.acceleration_fraction = acceleration_fraction
 
@@ -139,13 +140,15 @@ class HexagonProgressEffect(Effect):
                 # don't confuse the \
                 # for a fraction
 
-
-
         leds_to_set = round(90 * self.progress)
         if leds_to_set > 90:
             leds_to_set = 90
-        for i in range(leds_to_set):
-            self.constellation.set_single_led(self.hexagon_obj.led_angle_coords[i][1], self.color)
+
+        for i in range(90):
+            if i < leds_to_set:
+                self.constellation.set_single_led(self.hexagon_obj.led_angle_coords[i][1], self.color)
+            else:
+                self.constellation.set_single_led(self.hexagon_obj.led_angle_coords[i][1], self.bg_color)
 
     def is_done(self, current_song_time):
         if current_song_time >= self.end_time:
@@ -469,7 +472,7 @@ class AnimatedRingEffect(DrawRingEffect):
         self.x_coord = x_coord
         self.y_coord = y_coord
         self.layer = layer
-        self.is_transition = is_transition
+        self.is_transition = is_transition  # This is to fill the whole board
 
     def run(self, current_song_time):
         if not self.is_done(current_song_time) and current_song_time >= self.start_time:
