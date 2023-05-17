@@ -128,14 +128,16 @@ class HexagonProgressEffect(Effect):
         else:
             # special case where there is no coasting
             t1 = self.start_time + self.duration / 2
-            accel = 4
+            accel = 4 / (self.duration ** 2)
             v1 = accel * self.duration / 2
 
             if current_song_time < t1:
                 self.progress = 0.5 * accel * (current_song_time - self.start_time) ** 2
             else:
-                self.progress = -0.5 * accel * (current_song_time - self.start_time - 0.5) ** 2 + v1 * \
-                                (current_song_time - self.start_time - 0.5) + 0.5
+                self.progress = -0.5 * accel * (current_song_time - self.start_time - 0.5 * self.duration) ** 2 + v1 * \
+                                (current_song_time - self.start_time - 0.5 * self.duration) + 0.5
+                # don't confuse the \
+                # for a fraction
 
 
 

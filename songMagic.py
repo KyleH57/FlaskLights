@@ -45,6 +45,8 @@ class Song:
         self.last_beat = None
 
         self.section_color = [255, 0, 0]
+        self.color2 = None
+        self.color3 = None
 
         print(self.song_id)
 
@@ -128,6 +130,8 @@ class Song:
         # if section changed, do something
         if self.update_sections() and not self.mapped_song:
             self.section_color = next_color(1, self.section_color)
+            self.color2 = next_color(1, self.section_color)
+            self.color3 = next_color(1, self.color2)
 
             # get time until next section
             time_until_next_section = self.sections[self.current_section]["start"] + \
@@ -142,11 +146,11 @@ class Song:
         # if beat changed, do something
         if self.update_beats():
             if self.time_signature == 4:
-                if self.current_beat_index % 2 == 0:
-                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index-1) + self.get_beat_duration(self.current_beat_index + 1), [255, 0, 0], 2))
+                if self.current_beat_index % 2 == 0 and self.current_beat_index + 2 < len(self.beats):
+                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color3, 2, 1, 0.5))
                     pass
                 else:
-                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index-1) + self.get_beat_duration(self.current_beat_index + 1), self.section_color, 10))
+                    self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), self.color2, 10, 1, 0.5))
                     pass
             else:
                 print("Time signature not supported")
@@ -192,31 +196,31 @@ class Song:
         return current_section, section_changed
 
 
-class SongLookup:
-    __instance = None
-
-    @staticmethod
-    def get_instance():
-        if SongLookup.__instance is None:
-            SongLookup()
-        return SongLookup.__instance
-
-    def __init__(self):
-        if SongLookup.__instance is not None:
-            raise Exception("This class is a singleton!")
-        else:
-            SongLookup.__instance = self
-            self.song_list = []
-
-        # self.song_list.append(Song("63mL1DdcSFfxVJ9XGnSRQz", 176.97333, [0.0, 7.9221, 21.40309, 34.00896, 48.79903, 64.01683, 70.5222, 91.83413, 116.60762, 132.47868, 145.744, 163.1296]))
-
-        self.song_list.append(Song("Run Wild", "2QQ5BiHTf2UnZ6LHYKLcx5",
-                                   159.4737, [0.0, 8.31746, 20.16123, 43.84421, 73.05014, 95.93646, 108.5845, 120.42278,
-                                              133.84496]))
-
-    def get_song_by_id(self, id):
-        for song in self.song_list:
-            if song.get_song_id() == id:
-                return song
-
-        return None
+# class SongLookup:
+#     __instance = None
+#
+#     @staticmethod
+#     def get_instance():
+#         if SongLookup.__instance is None:
+#             SongLookup()
+#         return SongLookup.__instance
+#
+#     def __init__(self):
+#         if SongLookup.__instance is not None:
+#             raise Exception("This class is a singleton!")
+#         else:
+#             SongLookup.__instance = self
+#             self.song_list = []
+#
+#         # self.song_list.append(Song("63mL1DdcSFfxVJ9XGnSRQz", 176.97333, [0.0, 7.9221, 21.40309, 34.00896, 48.79903, 64.01683, 70.5222, 91.83413, 116.60762, 132.47868, 145.744, 163.1296]))
+#
+#         self.song_list.append(Song("Run Wild", "2QQ5BiHTf2UnZ6LHYKLcx5",
+#                                    159.4737, [0.0, 8.31746, 20.16123, 43.84421, 73.05014, 95.93646, 108.5845, 120.42278,
+#                                               133.84496]))
+#
+#     def get_song_by_id(self, id):
+#         for song in self.song_list:
+#             if song.get_song_id() == id:
+#                 return song
+#
+#         return None
