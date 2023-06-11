@@ -107,6 +107,18 @@ class Segment:
         return f"Segment({self.x_start}, {self.y_start}, {math.degrees(self.angle)}, {self.num_leds}, {self.spacing}, {self.edge_spacing}, {self.start_index}, {self.panel})"
 
 
+class VolumeBar:
+    def __init__(self, constellation, segment_indices, num_leds_segment):
+        self.led_indices = []
+        self.sorted_led_indices = []
+        for i in range(len(segment_indices)):
+            for j in range(num_leds_segment):
+                self.led_indices.append((segment_indices[i] + 0) * num_leds_segment + j)
+
+        # create a list of led indices sorted by led.yCoord
+        self.sorted_led_indices = sorted(self.led_indices, key=lambda x: constellation.leds[x].yCoord)
+
+
 class Hexagon:
     def __init__(self, hex_node, constellation):
         self.constellation = constellation
@@ -128,11 +140,8 @@ class Hexagon:
                 led_y = led.yCoord_centroid - self.centroid_y
                 angle = math.atan2(led_y, led_x)
 
-
                 if angle < 0:
                     angle += 2 * math.pi
-
-
 
                 self.led_angle_coords.append([angle, i + j, led_x, led_y])
 
@@ -143,9 +152,6 @@ class Hexagon:
         print("Hexagon centroid: " + str(self.centroid_x) + ", " + str(self.centroid_y))
         print("Hexagon led indices: " + str(self.led_indices))
         print("Hexagon led angle coordinates: " + str(self.led_angle_coords))
-
-
-
 
 
 class Constellation:
@@ -163,6 +169,7 @@ class Constellation:
         self.nodes = []
         self.leds = []  # WS2812LED objects
         self.hexagons = []
+        self.volume_bars = []
         self.num_leds = 0
 
         self.effects = []  # list of currently running effects
@@ -184,6 +191,10 @@ class Constellation:
 
         # populate the hexagons list
         stuff5623 = self.find_hexagons()
+
+        # populate the volume bars list
+        # hard coded for now
+        self.volume_bars.append(VolumeBar(self, [2, 3, 5, 6, 8, 9], self.num_leds_segment))
 
         for hex_node in stuff5623:
             self.hexagons.append(Hexagon(hex_node, self))

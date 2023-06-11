@@ -506,3 +506,39 @@ class AnimatedRingEffect(DrawRingEffect):
     def is_done(self, current_song_time):
         if current_song_time >= self.end_time or self.velocity < 0:
             return True
+
+class VolumeBarEffect(Effect):
+    def __init__(self, constellation, bar_index, start_time, duration, value, color, layer=0):
+        super().__init__()
+        self.constellation = constellation
+        self.bar_index = bar_index
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.value = value
+        self.color = color
+        self.layer = layer
+
+
+        self.num_to_set = math.floor(self.value * len(self.constellation.volume_bars[self.bar_index].led_indices))
+        # print("num to set: ", self.num_to_set)
+
+    def run(self, current_song_time):
+        if not self.is_done(current_song_time):
+            # elapsed_time = current_song_time - self.start_time
+            self.draw_volume_bar(self.constellation)
+            return True
+        else:
+            return False
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time:
+            return True
+
+    def draw_volume_bar(self, constellation):
+        volume_bar = constellation.volume_bars[self.bar_index]
+        for i in range(len(volume_bar.sorted_led_indices)):
+            if i < self.num_to_set:
+                led_index = volume_bar.sorted_led_indices[i]
+                constellation.leds[led_index].set_color(self.color)
+

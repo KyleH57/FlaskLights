@@ -13,9 +13,11 @@
     <p>The song id is {{ song_id }}.</p>
     <p>The bpm is {{ song_bpm }}.</p>
 
-    <div id="loudness-chart">{{ loudness_chart_html|safe }}</div>
+    <!-- Set dimensions for chart divs -->
+    <div id="loudness-chart" style="width:100%;height:600px;">{{ loudness_chart_html|safe }}</div>
 
-    <div id="conf-chart">{{ section_confidences_chart_html|safe }}</div>
+    <div id="conf-chart" style="width:100%;height:600px;">{{ section_confidences_chart_html|safe }}</div>
+    <div id="timbre-histogram">{{ timbre_histogram_html|safe }}</div>
 
   </body>
 </html>

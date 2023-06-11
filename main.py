@@ -89,7 +89,6 @@ last_currently_playing_data_progress_ms = -1
 def index():
     global last_currently_playing_data_progress_ms
 
-
     if "spotify_token" not in session:
         return redirect("/login/spotify")
     headers = {
@@ -221,11 +220,35 @@ def index():
 
     web_song_bpm = resp.json()["track"]["tempo"]
 
+    #histogram stuff
+    timbre_data = [segment["timbre"][0] for segment in resp.json()["segments"]]
+
+
+
+    # Create the histogram
+    timbre_histogram = go.Histogram(
+        x=timbre_data,
+        name='Timbre[0] Distribution'
+    )
+
+    layout = go.Layout(
+        title='Timbre[0] Distribution',
+        xaxis=dict(title='Timbre[0] Value'),
+        yaxis=dict(title='Count')
+    )
+
+    fig = go.Figure(data=[timbre_histogram], layout=layout)
+    timbre_histogram_html = fig.to_html(full_html=False)
+
+
 
     refresh_interval = math.ceil(
         (currently_playing_data["item"]["duration_ms"] - currently_playing_data["progress_ms"]) / 1000)
-    return render_template('index.html', song=song, artist=artist, song_id=web_song_id, song_bpm=web_song_bpm, refresh_interval=refresh_interval,
-                           loudness_chart_html=loudness_chart_html, section_confidences_chart_html=section_confidences_chart_html)
+    return render_template('index.html', song=song, artist=artist, song_id=web_song_id, song_bpm=web_song_bpm,
+                           refresh_interval=refresh_interval,
+                           loudness_chart_html=loudness_chart_html,
+                           section_confidences_chart_html=section_confidences_chart_html,
+                           timbre_histogram_html=timbre_histogram_html)
 
 
 def random_color(max_brightness):
@@ -314,7 +337,7 @@ def worker(conn, frequency=16.0):
     SEGMENT_LED_SPACING = 15
     SEGMENT_EDGE_SPACING = 13
     my_constellation = Constellation(ARRANGEMENT, NUM_LEDS_SEGMENT, SEGMENT_LED_SPACING, SEGMENT_EDGE_SPACING, MAX_BRIGHTNESS)
-    # my_constellation.plot_constellation()
+    my_constellation.plot_constellation()
 
 
 

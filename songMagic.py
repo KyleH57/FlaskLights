@@ -2,6 +2,8 @@ import colorsys
 import random
 import time
 
+import numpy as np
+
 import effects as ef
 
 
@@ -41,8 +43,23 @@ class Song:
         self.current_section = 0
         self.last_section = None
 
+        self.current_beat = None
         self.current_beat_index = 0
         self.last_beat = None
+
+        self.current_segment = None
+        self.current_segment_index = 0
+        self.last_segment = None
+
+
+
+
+        # Calculate the 2.5th and 97.5th percentiles
+        timbre_data = np.array([segment["timbre"][0] for segment in self.segments])
+        self.lower_bound = np.percentile(timbre_data, 2.5)
+        self.upper_bound = np.percentile(timbre_data, 97.5)  #TODO: need to update for x2-12
+        self.range = self.upper_bound - self.lower_bound
+
 
         self.section_color = [255, 0, 0]
         self.color2 = None
@@ -121,9 +138,12 @@ class Song:
     def get_beat_time(self, beat_num):
         return self.beats[beat_num]["start"]
 
-    def get_beat_duration(self, beat_num):
+    def get_beat_duration(self, beat_num):  # beat_num may be 0-based or 1-based. Need to check and make sure code is consistent
         # ("Beat num: " + str(beat_num))
         return self.beats[beat_num]["duration"]
+
+    def get_segment_duration(self, segment_index):  # segment_index is 0-based
+        return self.segments[segment_index]["duration"]
 
     def add_effects_while_running(self):
 
@@ -151,28 +171,52 @@ class Song:
                 # print("Beat index: " + str(self.current_beat_index), "Length of beats: " + str(len(self.beats)))
                 if self.current_beat_index + 2 < len(self.beats):
                     if self.current_beat_index % 2 == 0:  # do something on a 1,3 or 2,4 beat when time signature is 4/4
-                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color3, 2, 2, 0.5))
-                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 1, 1, 0.2, 0.4))
-                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 0, 1, 0.2, 0.4))
+                        # self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color3, 2, 2, 0.5))
+                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 1, 1, 0.2, 0.4))
+                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 0, 1, 0.2, 0.4))
                         pass
                     else:
-                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color2,  10, 2, 0.5))
-                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
-                                                                           self.get_beat_duration(
-                                                                               self.current_beat_index), self.color2, 12,
-                                                                           1, 0.2, 0.4))
-                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
-                                                                           self.get_beat_duration(
-                                                                               self.current_beat_index), self.color2, 9,
-                                                                           1, 0.2, 0.4))
+                        # self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color2,  10, 2, 0.5))
+                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
+                        #                                                    self.get_beat_duration(
+                        #                                                        self.current_beat_index), self.color2, 12,
+                        #                                                    1, 0.2, 0.4))
+                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
+                        #                                                    self.get_beat_duration(
+                        #                                                        self.current_beat_index), self.color2, 9,
+                        #                                                    1, 0.2, 0.4))
                         pass
+
             else:
                 print("Time signature not supported")
                 print(self.time_signature)
 
+        # if segment changed, do something
+        if self.update_segments():
+            # print("Segment changed")
+            # print(self.current_segment)
+            # get timbre data
+
+            x1 = abs((self.current_segment["timbre"][0] - self.lower_bound) / self.range)
+            if x1 > 1:
+                x1 = 1
+            if x1 < 0:
+                x1 = 0
+
+            print("x1 = " + str(x1))
+
+            # print("x1 = " + str(self.current_segment["timbre"][0]) + "x2 = " + str(
+            #     self.current_segment["timbre"][1]) + "x3 = " + str(self.current_segment["timbre"][2]) + "x4 = " + str(
+            #     self.current_segment["timbre"][3]) + "x5 = " + str(self.current_segment["timbre"][4]) + "x6 = " + str(
+            #     self.current_segment["timbre"][5]))
+
+            self.constellation.add_effect(ef.VolumeBarEffect(self.constellation, 0, self.current_song_time,
+                                                             self.get_segment_duration(self.current_segment_index) / 1.5, x1,
+                                                             self.section_color, 4))
+
     def update_sections(self):
         for section in self.sections:
-            if section["start"] <= self.current_song_time < section["start"] + section["duration"]:
+            if section["start"] <= self.current_song_time < section["start"] + section["duration"]:  # section has changed
 
                 self.current_section = self.sections.index(section)
 
@@ -183,13 +227,27 @@ class Song:
 
     def update_beats(self):
         for beat in self.beats:
-            if beat["start"] <= self.current_song_time < beat["start"] + beat["duration"]:
+            if beat["start"] <= self.current_song_time < beat["start"] + beat["duration"]:  # beat has changed
+
                 self.current_beat_index = self.beats.index(beat)
+
                 if self.current_beat_index != self.last_beat:
 
                     self.last_beat = self.current_beat_index
                     return True  # beat has changed
                 return False  # beat has not changed
+
+    def update_segments(self):
+        for segment in self.segments:
+            if segment["start"] <= self.current_song_time < segment["start"] + segment["duration"]:
+
+                self.current_segment_index = self.segments.index(segment)
+                self.current_segment = segment
+
+                if self.current_segment != self.last_segment:
+                    self.last_segment = self.current_segment
+                    return True
+                return False
 
     def update_time(self):
         # this can be optimized
