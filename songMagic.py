@@ -53,7 +53,8 @@ class Song:
         self.is_special(song_id)
 
     def is_special(self, song_id):
-        if song_id == "1sK28tbNrhhKWRKl920sDa":  # "Check This Out" by Oh The Larceny
+        if song_id == "1sK28tbNrhhKWRKl920sDa":  # "Check This Out" by Oh The Larceny, broken bc these
+            # methods were updated since the code was written
             print("special song detected")
             check_it_out_time = 33
             self.mapped_song = True
@@ -151,19 +152,19 @@ class Song:
                 if self.current_beat_index + 2 < len(self.beats):
                     if self.current_beat_index % 2 == 0:  # do something on a 1,3 or 2,4 beat when time signature is 4/4
                         self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color3, 2, 2, 0.5))
-                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 1, 1, 0, 0.1))
-                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 0, 1, 0, 0.1))
+                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 1, 1, 0.2, 0.4))
+                        self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 0, 1, 0.2, 0.4))
                         pass
                     else:
                         self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color2,  10, 2, 0.5))
                         self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
                                                                            self.get_beat_duration(
                                                                                self.current_beat_index), self.color2, 12,
-                                                                           1, 0, 0.1))
+                                                                           1, 0.2, 0.4))
                         self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
                                                                            self.get_beat_duration(
                                                                                self.current_beat_index), self.color2, 9,
-                                                                           1, 0, 0.1))
+                                                                           1, 0.2, 0.4))
                         pass
             else:
                 print("Time signature not supported")

@@ -182,7 +182,6 @@ class SCurve:  # dead code
                 return 1 - 0.5 * self.acceleration * dt**2
 
 
-# old stuff, kept to not break things
 class FillHexagonEffect(Effect):
     def __init__(self, constellation, start_time, duration, color, hexagon_index, layer=1, fade_in_time=0,
                  fade_out_time=0):

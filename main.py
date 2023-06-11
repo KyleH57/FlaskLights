@@ -199,12 +199,14 @@ def index():
         mode='lines+markers',  # add markers
         line=dict(shape='hv'),  # horizontal - vertical lines
         name='Section Confidence'
+        # yaxis = dict(title='Confidence', range=[1, 0]),  # Set range for loudness
+
     )
 
     layout = go.Layout(
         title='Section Confidence vs Time',
         xaxis=dict(title='Time (s)'),
-        yaxis=dict(title='Section Confidence')
+        yaxis=dict(title='Section Confidence', range=[0, 1])
     )
 
     fig = go.Figure(data=[section_confidences_chart], layout=layout)
@@ -306,7 +308,7 @@ def worker(conn, frequency=16.0):
                   "120, -180r, 60, 120,-180, -120r," \
                   "120, -180r, 60, 0, -60, -120"
 
-    MAX_BRIGHTNESS = 0.11
+    MAX_BRIGHTNESS = 0.66
 
     NUM_LEDS_SEGMENT = 15
     SEGMENT_LED_SPACING = 15
@@ -444,7 +446,7 @@ def worker(conn, frequency=16.0):
                 # remove all effects
                 my_constellation.remove_all_effects()
 
-                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 7200, 1500, 750, 1.0))
+                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 72000, 1500, 750, 1.0))
                 idle_rainbow_playing = True
             #
             # current_song_data = []
