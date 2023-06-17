@@ -6,6 +6,39 @@ import numpy as np
 
 import effects as ef
 
+import numpy as np
+from scipy.spatial.distance import cdist
+from collections import defaultdict
+
+
+def calculate_avg_distance(set1, set2):
+    # calculate pairwise distance matrix
+    dist_matrix = cdist(set1, set2)
+    # return mean of pairwise distances
+    return dist_matrix.mean()
+
+
+# Assuming data is a dictionary where keys are set names and values are np arrays of vectors
+# Example: data = {"A": np.array([[1,2,3], [2,3,4], [3,4,5]]), "B": np.array([[2,3,4], [3,4,5], [4,5,6]])}
+def find_similar_sets(data, threshold):
+    # dictionary to store similarities
+    similar_sets = defaultdict(list)
+
+    # iterate over all pairs of sets
+    for set_name1, set_vectors1 in data.items():
+        for set_name2, set_vectors2 in data.items():
+            # skip comparison with self
+            if set_name1 == set_name2:
+                continue
+
+            # calculate average distance
+            avg_distance = calculate_avg_distance(set_vectors1, set_vectors2)
+
+            # if average distance is below threshold, consider sets as similar
+            if avg_distance <= threshold:
+                similar_sets[set_name1].append(set_name2)
+
+    return similar_sets
 
 def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
     # convert last color to hsv
@@ -32,6 +65,14 @@ class Song:
         self.bars = bars
         self.beats = beats
         self.segments = segments
+
+        self.corrected_section_times = self.set_corrected_section_times(song_id)
+
+
+        # create a 3d array of segments by section
+        self.segments_by_section = self.assign_segments_to_sections()
+
+
         self.tatums = tatums
 
         self.time_signature = time_signature
@@ -40,7 +81,7 @@ class Song:
 
         self.current_song_time = 0  # used when playing song
 
-        self.current_section = 0
+        self.current_section_index = 0
         self.last_section = None
 
         self.current_beat = None
@@ -54,6 +95,21 @@ class Song:
 
 
 
+        threshold = 125  # make smaller if too many things are getting clustered together
+        similar_sets = find_similar_sets(self.segments_by_section, threshold)
+        # print the set size of each set
+        # for set_name, set_vectors in self.segments_by_section.items():
+        #     print(f"Set {set_name} has {set_vectors.shape[0]} vectors")
+        #
+        for set_name, similar_set_names in similar_sets.items():
+            print(f"Set {set_name} is similar to sets {similar_set_names}")
+
+        if len(similar_sets) == 0:
+            print("no similar sets found")
+
+
+
+        # this is for the volume bar
         # Calculate the 2.5th and 97.5th percentiles
         timbre_data = np.array([segment["timbre"][0] for segment in self.segments])
         self.lower_bound = np.percentile(timbre_data, 2.5)
@@ -65,9 +121,86 @@ class Song:
         self.color2 = None
         self.color3 = None
 
-        print(self.song_id)
 
         self.is_special(song_id)
+
+    def set_corrected_section_times(self, song_id):
+        corrected_sections = []
+
+        if song_id == "7FbrGaHYVDmfr7KoLIZnQ7":  # cupid twin ver
+            # section_starts = self.round_section_start_times([0, 9.4, 41.9, 89, 109, 119, 140])
+            section_starts = self.round_section_start_times(["0", "9.4", "41.9", "1:30", "2:01", "2:20.25"])
+            section_starts.append(self.total_duration)  # Add total duration to the end of starts
+        else:
+            return None
+
+        for i in range(len(section_starts) - 1):  # Exclude the last start time (total duration)
+            start = section_starts[i]
+
+            # Calculate duration as difference between current start and next start
+            duration = section_starts[i + 1] - start
+
+            corrected_sections.append({"start": start, "duration": duration})
+
+        return corrected_sections
+
+        print("Using corrected section times")
+        return corrected_sections
+
+    def round_section_start_times(self, section_starts):
+        # This takes an array of times in "minutes:seconds" format or "seconds" format and returns an array of the times of the closest beats
+        section_starts_seconds = []
+        for start in section_starts:
+            if ':' in start:  # Time is in "minutes:seconds" format
+                mins, secs = start.split(":")
+                time_in_seconds = int(mins) * 60 + float(secs)
+            else:  # Time is in "seconds" format
+                time_in_seconds = float(start)
+            section_starts_seconds.append(time_in_seconds)
+
+        return [self.round_section_start_time(start) for start in section_starts_seconds]
+
+    def round_section_start_time(self, section_start):
+        # This takes a time and looks for the beat that is closest to it and returns the time of the closest beat
+        closest_beat_time = self.beats[0]["start"]
+        for beat in self.beats:
+            if abs(beat["start"] - section_start) < abs(closest_beat_time - section_start):
+                closest_beat_time = beat["start"]
+
+        return closest_beat_time
+
+    def assign_segments_to_sections(self):
+        segments_by_section = {}
+        if self.corrected_section_times is None:
+            for section in self.sections:
+                section_start = section["start"]
+                section_end = section_start + section["duration"]
+
+                # Filter segments that belong to the current section
+                section_segments = [seg for seg in self.segments
+                                    if section_start <= seg["start"] < section_end]
+
+                # Represent each segment by a vector (here we consider 'pitches' and 'timbre' features)
+                # Modify this according to which segment features you want to consider
+                section_vectors = [seg["timbre"] for seg in section_segments]
+
+                segments_by_section[section_start] = np.array(section_vectors)
+        else:
+            for section in self.corrected_section_times:
+                section_start = section["start"]
+                section_end = section_start + section["duration"]
+
+                # Filter segments that belong to the current section
+                section_segments = [seg for seg in self.segments
+                                    if section_start <= seg["start"] < section_end]
+
+                # Represent each segment by a vector (here we consider 'pitches' and 'timbre' features)
+                # Modify this according to which segment features you want to consider
+                section_vectors = [seg["timbre"] for seg in section_segments]
+
+                segments_by_section[section_start] = np.array(section_vectors)
+
+        return segments_by_section
 
     def is_special(self, song_id):
         if song_id == "1sK28tbNrhhKWRKl920sDa":  # "Check This Out" by Oh The Larceny, broken bc these
@@ -155,9 +288,13 @@ class Song:
             self.color2 = next_color(1, self.section_color)
             self.color3 = next_color(1, self.color2)
 
-            # get time until next section
-            time_until_next_section = self.sections[self.current_section]["start"] + \
-                                      self.sections[self.current_section]["duration"] - self.current_song_time
+            if self.corrected_section_times is None:
+                # get time until next section
+                time_until_next_section = self.sections[self.current_section_index]["start"] + \
+                                          self.sections[self.current_section_index]["duration"] - self.current_song_time
+            else:
+                time_until_next_section = self.corrected_section_times[self.current_section_index]["start"] + \
+                                          self.corrected_section_times[self.current_section_index]["duration"] - self.current_song_time
 
             # self.constellation.add_effect(
             #     ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section,
@@ -171,12 +308,12 @@ class Song:
                 # print("Beat index: " + str(self.current_beat_index), "Length of beats: " + str(len(self.beats)))
                 if self.current_beat_index + 2 < len(self.beats):
                     if self.current_beat_index % 2 == 0:  # do something on a 1,3 or 2,4 beat when time signature is 4/4
-                        # self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color3, 2, 2, 0.5))
+                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color3, 2, 2, 0.5))
                         # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 1, 1, 0.2, 0.4))
                         # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 0, 1, 0.2, 0.4))
                         pass
                     else:
-                        # self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color2,  10, 2, 0.5))
+                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color2,  10, 2, 0.5))
                         # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
                         #                                                    self.get_beat_duration(
                         #                                                        self.current_beat_index), self.color2, 12,
@@ -196,34 +333,34 @@ class Song:
             # print("Segment changed")
             # print(self.current_segment)
             # get timbre data
+            pass
 
-            x1 = abs((self.current_segment["timbre"][0] - self.lower_bound) / self.range)
-            if x1 > 1:
-                x1 = 1
-            if x1 < 0:
-                x1 = 0
 
-            print("x1 = " + str(x1))
 
-            # print("x1 = " + str(self.current_segment["timbre"][0]) + "x2 = " + str(
-            #     self.current_segment["timbre"][1]) + "x3 = " + str(self.current_segment["timbre"][2]) + "x4 = " + str(
-            #     self.current_segment["timbre"][3]) + "x5 = " + str(self.current_segment["timbre"][4]) + "x6 = " + str(
-            #     self.current_segment["timbre"][5]))
 
-            self.constellation.add_effect(ef.VolumeBarEffect(self.constellation, 0, self.current_song_time,
-                                                             self.get_segment_duration(self.current_segment_index) / 1.5, x1,
-                                                             self.section_color, 4))
 
     def update_sections(self):
-        for section in self.sections:
-            if section["start"] <= self.current_song_time < section["start"] + section["duration"]:  # section has changed
+        if self.corrected_section_times is None:
+            for section in self.sections:
+                if section["start"] <= self.current_song_time < section["start"] + section["duration"]:  # section has changed
 
-                self.current_section = self.sections.index(section)
+                    self.current_section_index = self.sections.index(section)
 
-                if self.current_section != self.last_section:
-                    self.last_section = self.current_section
-                    return True
-                break
+                    if self.current_section_index != self.last_section:
+                        self.last_section = self.current_section_index
+                        return True
+                    break
+        else:
+            for section in self.corrected_section_times:
+                if section["start"] <= self.current_song_time < section["start"] + section[
+                    "duration"]:  # section has changed
+
+                    self.current_section_index = self.corrected_section_times.index(section)
+
+                    if self.current_section_index != self.last_section:
+                        self.last_section = self.current_section_index
+                        return True
+                    break
 
     def update_beats(self):
         for beat in self.beats:
