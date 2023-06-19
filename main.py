@@ -174,7 +174,7 @@ def index():
     layout = go.Layout(
         title='Loudness vs Time & Average Beats Confidence per Section',
         xaxis=dict(title='Time (s)'),
-        yaxis=dict(title='Loudness (dBFS)', range=[-10, -2]),  # Set range for loudness
+        yaxis=dict(title='Loudness (dBFS)', range=[-12, 0]),  # Set range for loudness
         yaxis2=dict(title='Average Confidence', overlaying='y', side='right', range=[0, 1])  # Set range for confidence
     )
 
@@ -337,7 +337,8 @@ def worker(conn, frequency=16.0):
     SEGMENT_LED_SPACING = 15
     SEGMENT_EDGE_SPACING = 13
     my_constellation = Constellation(ARRANGEMENT, NUM_LEDS_SEGMENT, SEGMENT_LED_SPACING, SEGMENT_EDGE_SPACING, MAX_BRIGHTNESS)
-    my_constellation.plot_constellation()
+    # my_constellation.plot_constellation()
+    # my_constellation.plot_constellation_centroid()
 
 
 

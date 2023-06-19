@@ -1,7 +1,11 @@
 import colorsys
 import math
 from typing import List
-
+import numpy as np
+from noise import snoise3
+from PIL import Image
+import imageio.v2 as imageio
+import colorsys
 
 class Effect:
     def run(self, current_song_data):
@@ -106,7 +110,8 @@ class FillHexagonEffectOld(Effect):
 
 
 class HexagonProgressEffect(Effect):
-    def __init__(self, constellation, start_time, duration, color, bg_color, hexagon_index, layer=1, acceleration_fraction=0):
+    def __init__(self, constellation, start_time, duration, color, bg_color, hexagon_index, layer=1,
+                 acceleration_fraction=0):
         super().__init__()
         self.constellation = constellation
         self.start_time = start_time
@@ -120,7 +125,6 @@ class HexagonProgressEffect(Effect):
         self.hexagon_obj = self.constellation.hexagons[hexagon_index]
 
         self.progress = 0
-
 
     def run(self, current_song_time):
 
@@ -174,12 +178,12 @@ class SCurve:  # dead code
         else:
             t = (current_time - self.start_time) / self.duration
             if t < self.acceleration_time / self.duration:  # Acceleration phase
-                return 0.5 * self.acceleration * t**2
+                return 0.5 * self.acceleration * t ** 2
             elif t < 1 - self.acceleration_time / self.duration:  # Uniform motion phase
                 return t
             else:  # Deceleration phase
                 dt = 1 - t
-                return 1 - 0.5 * self.acceleration * dt**2
+                return 1 - 0.5 * self.acceleration * dt ** 2
 
 
 class FillHexagonEffect(Effect):
@@ -507,6 +511,7 @@ class AnimatedRingEffect(DrawRingEffect):
         if current_song_time >= self.end_time or self.velocity < 0:
             return True
 
+
 class VolumeBarEffect(Effect):
     def __init__(self, constellation, bar_index, start_time, duration, value, color, layer=0):
         super().__init__()
@@ -518,7 +523,6 @@ class VolumeBarEffect(Effect):
         self.value = value
         self.color = color
         self.layer = layer
-
 
         self.num_to_set = math.floor(self.value * len(self.constellation.volume_bars[self.bar_index].led_indices))
         # print("num to set: ", self.num_to_set)
@@ -542,3 +546,63 @@ class VolumeBarEffect(Effect):
                 led_index = volume_bar.sorted_led_indices[i]
                 constellation.leds[led_index].set_color(self.color)
 
+
+class PerlinNoiseGenerator:
+    def __init__(self, width, height, scale, speed):
+        self.width = width
+        self.height = height
+        self.scale = scale
+        self.z = 0
+        self.speed = speed
+
+    def generate_perlin_noise(self):
+        noise_array = np.zeros((self.height, self.width))
+
+        for y in range(self.height):
+            for x in range(self.width):
+                noise_value = snoise3(x / self.scale, y / self.scale, self.z, octaves=6, persistence=0.5, lacunarity=2.0)
+                noise_array[y][x] = (noise_value + 1)  # scale to 0-1 range
+
+        self.z += self.speed
+        return noise_array
+
+class PerlinNoiseEffect(Effect):
+    def __init__(self, constellation, start_time, duration, saturation, layer=0, scale=10, speed=0.1, noise_dim=(64, 64)):
+        super().__init__()
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.saturation = saturation
+        self.layer = layer
+        self.noise_gen = PerlinNoiseGenerator(*noise_dim, scale, speed)
+        self.noise_dim = noise_dim
+
+    def run(self, current_song_time):
+        if not self.is_done(current_song_time):
+            self.perlin_noise_effect(self.constellation)
+            return True
+        else:
+            return False
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time:
+            return True
+
+    def map_coord_to_noise(self, coord, max_coord):
+        # Map LED's centroid coordinates to noise array coordinates
+        return int((coord + max_coord) / (2 * max_coord) * self.noise_dim[0])  # assuming x and y dimensions are the same
+
+    def perlin_noise_effect(self, constellation):
+        noise_array = self.noise_gen.generate_perlin_noise()
+
+        for led in constellation.leds:
+            x = self.map_coord_to_noise(led.xCoord_centroid, 950)
+            y = self.map_coord_to_noise(led.yCoord_centroid, 615)
+            hue = noise_array[y, x]
+            color_hsv = (hue, self.saturation, 1)
+            color_rgb = colorsys.hsv_to_rgb(*color_hsv)
+            # convert float RGB values to integers in the range 0 to 255
+            color_int = [int(c * 255) for c in color_rgb]
+
+            led.set_color(color_int)

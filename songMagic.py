@@ -40,6 +40,7 @@ def find_similar_sets(data, threshold):
 
     return similar_sets
 
+
 def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
     # convert last color to hsv
     last_color = colorsys.rgb_to_hsv(last_color[0] / 255, last_color[1] / 255, last_color[2] / 255)
@@ -68,10 +69,8 @@ class Song:
 
         self.corrected_section_times = self.set_corrected_section_times(song_id)
 
-
         # create a 3d array of segments by section
         self.segments_by_section = self.assign_segments_to_sections()
-
 
         self.tatums = tatums
 
@@ -92,9 +91,6 @@ class Song:
         self.current_segment_index = 0
         self.last_segment = None
 
-
-
-
         threshold = 125  # make smaller if too many things are getting clustered together
         similar_sets = find_similar_sets(self.segments_by_section, threshold)
         # print the set size of each set
@@ -107,20 +103,16 @@ class Song:
         if len(similar_sets) == 0:
             print("no similar sets found")
 
-
-
         # this is for the volume bar
         # Calculate the 2.5th and 97.5th percentiles
         timbre_data = np.array([segment["timbre"][0] for segment in self.segments])
         self.lower_bound = np.percentile(timbre_data, 2.5)
-        self.upper_bound = np.percentile(timbre_data, 97.5)  #TODO: need to update for x2-12
+        self.upper_bound = np.percentile(timbre_data, 97.5)  # TODO: need to update for x2-12
         self.range = self.upper_bound - self.lower_bound
-
 
         self.section_color = [255, 0, 0]
         self.color2 = None
         self.color3 = None
-
 
         self.is_special(song_id)
 
@@ -130,9 +122,12 @@ class Song:
         if song_id == "7FbrGaHYVDmfr7KoLIZnQ7":  # cupid twin ver
             # section_starts = self.round_section_start_times([0, 9.4, 41.9, 89, 109, 119, 140])
             section_starts = self.round_section_start_times(["0", "9.4", "41.9", "1:30", "2:01", "2:20.25"])
-            section_starts.append(self.total_duration)  # Add total duration to the end of starts
+
+        elif song_id == "4nWP1IKQ9jqSyRg1kFel5D":  # Feels
+            section_starts = self.round_section_start_times(["0", "0:6.3", "0:23.7", "0:38.5", "0:54.7", "1:09", "1:26", "1:42"])
         else:
             return None
+        section_starts.append(self.total_duration)  # Add total duration to the end of starts
 
         for i in range(len(section_starts) - 1):  # Exclude the last start time (total duration)
             start = section_starts[i]
@@ -216,17 +211,28 @@ class Song:
                 ef.FillAllEffect(self.constellation, self.get_beat_time(119), .5, self.section_color, 1))  # Me
             self.section_color = next_color(1, self.section_color, 25, 35)
 
-            self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.get_beat_time(122), 0.35, (255, 255, 255), 1, 1, 0.1, 0.2))
-            self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.get_beat_time(122), 0.35, (255, 255, 255), 2, 1, 0.1, 0.2))
-            self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.get_beat_time(122), 0.35, (255, 255, 255), 0, 1, 0.1, 0.2))
+            self.constellation.add_effect(
+                ef.FillHexagonEffect(self.constellation, self.get_beat_time(122), 0.35, (255, 255, 255), 1, 1, 0.1,
+                                     0.2))
+            self.constellation.add_effect(
+                ef.FillHexagonEffect(self.constellation, self.get_beat_time(122), 0.35, (255, 255, 255), 2, 1, 0.1,
+                                     0.2))
+            self.constellation.add_effect(
+                ef.FillHexagonEffect(self.constellation, self.get_beat_time(122), 0.35, (255, 255, 255), 0, 1, 0.1,
+                                     0.2))
 
-            self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.get_beat_time(122)+0.25, 0.35, (255, 255, 255), 12, 1, 0.1, 0.2))
-            self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.get_beat_time(122)+0.25, 0.35, (255, 255, 255), 10, 1, 0.1, 0.2))
-            self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.get_beat_time(122)+0.25, 0.35, (255, 255, 255), 9, 1, 0.1, 0.2))
+            self.constellation.add_effect(
+                ef.FillHexagonEffect(self.constellation, self.get_beat_time(122) + 0.25, 0.35, (255, 255, 255), 12, 1,
+                                     0.1, 0.2))
+            self.constellation.add_effect(
+                ef.FillHexagonEffect(self.constellation, self.get_beat_time(122) + 0.25, 0.35, (255, 255, 255), 10, 1,
+                                     0.1, 0.2))
+            self.constellation.add_effect(
+                ef.FillHexagonEffect(self.constellation, self.get_beat_time(122) + 0.25, 0.35, (255, 255, 255), 9, 1,
+                                     0.1, 0.2))
 
-            self.constellation.add_effect(ef.BeachBall(self.constellation, self.get_beat_time(122)+0.75, 1.0, None, 0, 0.1, 0.3, 1))
-
-
+            self.constellation.add_effect(
+                ef.BeachBall(self.constellation, self.get_beat_time(122) + 0.75, 1.0, None, 0, 0.1, 0.3, 1))
 
             self.section_color = next_color(1, self.section_color)
 
@@ -271,14 +277,15 @@ class Song:
     def get_beat_time(self, beat_num):
         return self.beats[beat_num]["start"]
 
-    def get_beat_duration(self, beat_num):  # beat_num may be 0-based or 1-based. Need to check and make sure code is consistent
+    def get_beat_duration(self,
+                          beat_num):  # beat_num may be 0-based or 1-based. Need to check and make sure code is consistent
         # ("Beat num: " + str(beat_num))
         return self.beats[beat_num]["duration"]
 
     def get_segment_duration(self, segment_index):  # segment_index is 0-based
         return self.segments[segment_index]["duration"]
 
-    def add_effects_while_running(self):
+    def add_effects_while_running(self):  # this is called every frame
 
         self.update_time()
 
@@ -292,57 +299,67 @@ class Song:
                 # get time until next section
                 time_until_next_section = self.sections[self.current_section_index]["start"] + \
                                           self.sections[self.current_section_index]["duration"] - self.current_song_time
-            else:
+            else:  # manually mapped song
                 time_until_next_section = self.corrected_section_times[self.current_section_index]["start"] + \
-                                          self.corrected_section_times[self.current_section_index]["duration"] - self.current_song_time
+                                          self.corrected_section_times[self.current_section_index][
+                                              "duration"] - self.current_song_time
 
             # self.constellation.add_effect(
             #     ef.FillAllEffect(self.constellation, self.current_song_time, time_until_next_section,
             #                      self.section_color, 0))
-            self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, time_until_next_section, self.section_color, (111, 111, 111), 7, 2, 0))
-            self.constellation.add_effect(ef.AnimatedRingEffect(self.constellation, self.current_song_time, 1, 200, 400, self.section_color, 1200, 1200 * -1.618, 0, 0, 1, False))
+            # self.constellation.add_effect(
+            #     ef.HexagonProgressEffect(self.constellation, self.current_song_time, time_until_next_section,
+            #                              self.section_color, (111, 111, 111), 7, 2, 0))
+            # self.constellation.add_effect(
+            #     ef.AnimatedRingEffect(self.constellation, self.current_song_time, 1, 200, 400, self.section_color, 1200,
+            #                           1200 * -1.618, 0, 0, 1, False))
 
-        # if beat changed, do something
-        if self.update_beats():
-            if self.time_signature == 4:
-                # print("Beat index: " + str(self.current_beat_index), "Length of beats: " + str(len(self.beats)))
-                if self.current_beat_index + 2 < len(self.beats):
-                    if self.current_beat_index % 2 == 0:  # do something on a 1,3 or 2,4 beat when time signature is 4/4
-                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color3, 2, 2, 0.5))
-                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 1, 1, 0.2, 0.4))
-                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 0, 1, 0.2, 0.4))
-                        pass
-                    else:
-                        self.constellation.add_effect(ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2), (100, 100, 100), self.color2,  10, 2, 0.5))
-                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
-                        #                                                    self.get_beat_duration(
-                        #                                                        self.current_beat_index), self.color2, 12,
-                        #                                                    1, 0.2, 0.4))
-                        # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
-                        #                                                    self.get_beat_duration(
-                        #                                                        self.current_beat_index), self.color2, 9,
-                        #                                                    1, 0.2, 0.4))
-                        pass
+            self.constellation.add_effect(ef.PerlinNoiseEffect(self.constellation, self.current_song_time, time_until_next_section, 1.0, 1, 75, 0.006, (128, 128)))
 
-            else:
-                print("Time signature not supported")
-                print(self.time_signature)
-
-        # if segment changed, do something
-        if self.update_segments():
-            # print("Segment changed")
-            # print(self.current_segment)
-            # get timbre data
-            pass
-
-
-
-
+        # # if beat changed, do something
+        # if self.update_beats():
+        #     if self.time_signature == 4:
+        #         # print("Beat index: " + str(self.current_beat_index), "Length of beats: " + str(len(self.beats)))
+        #         if self.current_beat_index + 2 < len(self.beats):
+        #             if self.current_beat_index % 2 == 0:  # do something on a 1,3 or 2,4 beat when time signature is 4/4
+        #                 self.constellation.add_effect(
+        #                     ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(
+        #                         self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2),
+        #                                              (100, 100, 100), self.color3, 2, 2, 0.5))
+        #                 # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 1, 1, 0.2, 0.4))
+        #                 # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time, self.get_beat_duration(self.current_beat_index), self.color3, 0, 1, 0.2, 0.4))
+        #                 pass
+        #             else:
+        #                 self.constellation.add_effect(
+        #                     ef.HexagonProgressEffect(self.constellation, self.current_song_time, self.get_beat_duration(
+        #                         self.current_beat_index) + self.get_beat_duration(self.current_beat_index + 2),
+        #                                              (100, 100, 100), self.color2, 10, 2, 0.5))
+        #                 # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
+        #                 #                                                    self.get_beat_duration(
+        #                 #                                                        self.current_beat_index), self.color2, 12,
+        #                 #                                                    1, 0.2, 0.4))
+        #                 # self.constellation.add_effect(ef.FillHexagonEffect(self.constellation, self.current_song_time,
+        #                 #                                                    self.get_beat_duration(
+        #                 #                                                        self.current_beat_index), self.color2, 9,
+        #                 #                                                    1, 0.2, 0.4))
+        #                 pass
+        #
+        #     else:
+        #         print("Time signature not supported")
+        #         print(self.time_signature)
+        #
+        # # if segment changed, do something
+        # if self.update_segments():
+        #     # print("Segment changed")
+        #     # print(self.current_segment)
+        #     # get timbre data
+        #     pass
 
     def update_sections(self):
         if self.corrected_section_times is None:
             for section in self.sections:
-                if section["start"] <= self.current_song_time < section["start"] + section["duration"]:  # section has changed
+                if section["start"] <= self.current_song_time < section["start"] + section[
+                    "duration"]:  # section has changed
 
                     self.current_section_index = self.sections.index(section)
 
@@ -369,7 +386,6 @@ class Song:
                 self.current_beat_index = self.beats.index(beat)
 
                 if self.current_beat_index != self.last_beat:
-
                     self.last_beat = self.current_beat_index
                     return True  # beat has changed
                 return False  # beat has not changed
@@ -403,7 +419,6 @@ class Song:
             # If we didn't find a section, return the last section
             current_section = last_section
         return current_section, section_changed
-
 
 # class SongLookup:
 #     __instance = None
