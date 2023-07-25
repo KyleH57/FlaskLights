@@ -269,7 +269,7 @@ def check_match(string):
         return False
 
 
-def worker(conn, frequency=16.0):
+def worker(conn, frequency=20.0):
     song_duration = 0
     data = None
     current_section = None
@@ -507,7 +507,8 @@ def wait_for_next_iteration_no_sleep(frequency, start_time):
 
     fps = 1 / (time.perf_counter() - start_time)
 
-    if fps < frequency:
+    WARN_FPS = 8
+    if fps < WARN_FPS:
         print("WARNING LOW FPS - fps: " + str(fps))
 
     while True:

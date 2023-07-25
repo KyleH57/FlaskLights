@@ -2,8 +2,6 @@ import colorsys
 import random
 import time
 
-import numpy as np
-
 import effects as ef
 
 import numpy as np
@@ -58,13 +56,15 @@ class Song:
         self.constellation = constellation
         self.local_timestamp = local_timestamp
         self.current_song_timeAPI = current_song_timeAPI
+        self.current_song_time = 0  # used when playing song, updated in update_time()
+        self.time_until_song_end = None
         self.song_title = song_title
         self.song_id = song_id
         self.total_duration = total_duration
 
         self.sections = sections
         self.bars = bars
-        self.beats = beats
+        self.beats = beats # this is a list of beat objects, each beat object has a start time and duration
         self.segments = segments
 
         self.corrected_section_times = self.set_corrected_section_times(song_id)
@@ -78,7 +78,6 @@ class Song:
 
         self.mapped_song = False
 
-        self.current_song_time = 0  # used when playing song
 
         self.current_section_index = 0
         self.last_section = None
@@ -116,6 +115,20 @@ class Song:
 
         self.is_special(song_id)
 
+
+        self.start_song()
+        # init done
+
+    def start_song(self): # this is called only once when the song starts
+        self.update_time()
+        PERLIN_SIZE = 75  # this is specific to orion
+        self.constellation.add_effect(
+            ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
+                                 PERLIN_SIZE, 0.006, (64, 64), self.beats, 'both'))
+
+        print("song started")
+
+
     def set_corrected_section_times(self, song_id):
         corrected_sections = []
 
@@ -136,8 +149,6 @@ class Song:
             duration = section_starts[i + 1] - start
 
             corrected_sections.append({"start": start, "duration": duration})
-
-        return corrected_sections
 
         print("Using corrected section times")
         return corrected_sections
@@ -314,7 +325,7 @@ class Song:
             #     ef.AnimatedRingEffect(self.constellation, self.current_song_time, 1, 200, 400, self.section_color, 1200,
             #                           1200 * -1.618, 0, 0, 1, False))
 
-            self.constellation.add_effect(ef.PerlinNoiseEffect(self.constellation, self.current_song_time, time_until_next_section, 1.0, 1, 75, 0.006, (128, 128)))
+
 
         # # if beat changed, do something
         # if self.update_beats():
@@ -406,8 +417,10 @@ class Song:
         # this can be optimized
         current_time = int(round(time.time() * 1000))
         self.current_song_time = (current_time - self.local_timestamp) / 1000 + self.current_song_timeAPI
+        self.time_until_song_end = self.total_duration - self.current_song_time
 
     def get_current_section(sections, last_section, current_song_time):
+        print("WARNING THIS CODE IS SUS songMagic.py get_current_section()")
         section_changed = False
         for section in sections:
             if section["start"] <= current_song_time < section["start"] + section["duration"]:

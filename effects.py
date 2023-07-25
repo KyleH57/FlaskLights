@@ -548,14 +548,13 @@ class VolumeBarEffect(Effect):
 
 
 class PerlinNoiseGenerator:
-    def __init__(self, width, height, scale, speed):
+    def __init__(self, width, height, scale):
         self.width = width
         self.height = height
         self.scale = scale
         self.z = 0
-        self.speed = speed
 
-    def generate_perlin_noise(self):
+    def generate_perlin_noise(self, speed):
         noise_array = np.zeros((self.height, self.width))
 
         for y in range(self.height):
@@ -563,11 +562,13 @@ class PerlinNoiseGenerator:
                 noise_value = snoise3(x / self.scale, y / self.scale, self.z, octaves=6, persistence=0.5, lacunarity=2.0)
                 noise_array[y][x] = (noise_value + 1)  # scale to 0-1 range
 
-        self.z += self.speed
+        self.z += speed
         return noise_array
 
+
+
 class PerlinNoiseEffect(Effect):
-    def __init__(self, constellation, start_time, duration, saturation, layer=0, scale=10, speed=0.1, noise_dim=(64, 64)):
+    def __init__(self, constellation, start_time, duration, saturation, layer, scale, speed, noise_dim, beats, boost_beat_parity):
         super().__init__()
         self.constellation = constellation
         self.start_time = start_time
@@ -575,12 +576,17 @@ class PerlinNoiseEffect(Effect):
         self.end_time = start_time + duration
         self.saturation = saturation
         self.layer = layer
-        self.noise_gen = PerlinNoiseGenerator(*noise_dim, scale, speed)
+        self.noise_gen = PerlinNoiseGenerator(*noise_dim, scale)
+        self.speed = speed  # Store the initial speed
         self.noise_dim = noise_dim
+        self.beats = beats or []  # Use an empty list if beats is None
+        self.boost_beat_parity = boost_beat_parity  # Use 'even', 'odd' or 'both'
+        self.BEAT_SPEED_FRACTION = 0.5  # speed boost will last for this fraction of the beat
+        self.BEAT_SPEED_BOOST = 4
 
     def run(self, current_song_time):
         if not self.is_done(current_song_time):
-            self.perlin_noise_effect(self.constellation)
+            self.perlin_noise_effect(self.constellation, current_song_time)
             return True
         else:
             return False
@@ -593,8 +599,9 @@ class PerlinNoiseEffect(Effect):
         # Map LED's centroid coordinates to noise array coordinates
         return int((coord + max_coord) / (2 * max_coord) * self.noise_dim[0])  # assuming x and y dimensions are the same
 
-    def perlin_noise_effect(self, constellation):
-        noise_array = self.noise_gen.generate_perlin_noise()
+    def perlin_noise_effect(self, constellation, current_song_time):
+        current_speed = self.get_current_speed(current_song_time)
+        noise_array = self.noise_gen.generate_perlin_noise(current_speed)
 
         for led in constellation.leds:
             x = self.map_coord_to_noise(led.xCoord_centroid, 950)
@@ -606,3 +613,22 @@ class PerlinNoiseEffect(Effect):
             color_int = [int(c * 255) for c in color_rgb]
 
             led.set_color(color_int)
+
+    def get_current_speed(self, current_time):
+        if self.beats:
+            for i, beat in enumerate(self.beats):
+                # check if current_time is within the beat duration
+                if beat['start'] <= current_time < beat['start'] + beat['duration']:
+                    # get the amount of time elapsed since the start of the beat
+                    elapsed_time = current_time - beat['start']
+                    if self.boost_beat_parity == 'both' or \
+                            (self.boost_beat_parity == 'even' and i % 2 == 0) or \
+                            (self.boost_beat_parity == 'odd' and i % 2 == 1):
+                        if elapsed_time < beat['duration'] * self.BEAT_SPEED_FRACTION:
+                            # calculate the deceleration needed to reach normal speed by the end of the beat fraction
+                            deceleration = (self.speed * self.BEAT_SPEED_BOOST - self.speed) / (
+                                        beat['duration'] * self.BEAT_SPEED_FRACTION)
+                            # calculate the current speed based on the elapsed time and deceleration
+                            current_speed = self.speed * self.BEAT_SPEED_BOOST - deceleration * elapsed_time
+                            return current_speed
+        return self.speed
