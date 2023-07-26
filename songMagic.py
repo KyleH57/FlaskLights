@@ -124,7 +124,7 @@ class Song:
         PERLIN_SIZE = 75  # this is specific to orion
         self.constellation.add_effect(
             ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-                                 PERLIN_SIZE, 0.006, (64, 64), self.beats, 'both'))
+                                 PERLIN_SIZE, 0.006, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':(0.0/6), 'hue2':(5.999/6)}))
 
         print("song started")
 

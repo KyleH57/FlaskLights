@@ -1,5 +1,7 @@
 import colorsys
 import math
+from enum import Enum
+
 from typing import List
 import numpy as np
 from noise import snoise3
@@ -546,6 +548,9 @@ class VolumeBarEffect(Effect):
                 led_index = volume_bar.sorted_led_indices[i]
                 constellation.leds[led_index].set_color(self.color)
 
+class ColorMode(Enum):
+    INTERPOLATE_HUES = 1
+    HUE_TO_WHITE = 2
 
 class PerlinNoiseGenerator:
     def __init__(self, width, height, scale):
@@ -554,13 +559,26 @@ class PerlinNoiseGenerator:
         self.scale = scale
         self.z = 0
 
+        self.CLIPPING_THRESHOLD = 0.45
+
     def generate_perlin_noise(self, speed):
         noise_array = np.zeros((self.height, self.width))
 
         for y in range(self.height):
             for x in range(self.width):
                 noise_value = snoise3(x / self.scale, y / self.scale, self.z, octaves=6, persistence=0.5, lacunarity=2.0)
-                noise_array[y][x] = (noise_value + 1)  # scale to 0-1 range
+
+                if noise_value > self.CLIPPING_THRESHOLD:
+                    noise_value = self.CLIPPING_THRESHOLD
+                elif noise_value < -self.CLIPPING_THRESHOLD:
+                    noise_value = -self.CLIPPING_THRESHOLD
+
+                # now scale to the range of 0 to 1
+                noise_value = (noise_value + self.CLIPPING_THRESHOLD) / (2 * self.CLIPPING_THRESHOLD)
+                # snosie3 returns a value between -1 and 1, but the vast majority of values are between -0.6 and 0.6
+                noise_array[y][x] = noise_value
+
+
 
         self.z += speed
         return noise_array
@@ -568,7 +586,7 @@ class PerlinNoiseGenerator:
 
 
 class PerlinNoiseEffect(Effect):
-    def __init__(self, constellation, start_time, duration, saturation, layer, scale, speed, noise_dim, beats, boost_beat_parity):
+    def __init__(self, constellation, start_time, duration, saturation, layer, scale, speed, noise_dim, beats, boost_beat_parity, color_mode, color_params=None):
         super().__init__()
         self.constellation = constellation
         self.start_time = start_time
@@ -582,7 +600,9 @@ class PerlinNoiseEffect(Effect):
         self.beats = beats or []  # Use an empty list if beats is None
         self.boost_beat_parity = boost_beat_parity  # Use 'even', 'odd' or 'both'
         self.BEAT_SPEED_FRACTION = 0.5  # speed boost will last for this fraction of the beat
-        self.BEAT_SPEED_BOOST = 4
+        self.BEAT_SPEED_BOOST = 7
+        self.color_mode = color_mode
+        self.color_params = color_params or {}
 
     def run(self, current_song_time):
         if not self.is_done(current_song_time):
@@ -606,12 +626,15 @@ class PerlinNoiseEffect(Effect):
         for led in constellation.leds:
             x = self.map_coord_to_noise(led.xCoord_centroid, 950)
             y = self.map_coord_to_noise(led.yCoord_centroid, 615)
+            # hue = noise_array[y, x]
+            # color_hsv = (hue, self.saturation, 1)
+            # color_rgb = colorsys.hsv_to_rgb(*color_hsv)
+            # # convert float RGB values to integers in the range 0 to 255
+            # color_int = [int(c * 255) for c in color_rgb]
+            #
+            # led.set_color(color_int)
             hue = noise_array[y, x]
-            color_hsv = (hue, self.saturation, 1)
-            color_rgb = colorsys.hsv_to_rgb(*color_hsv)
-            # convert float RGB values to integers in the range 0 to 255
-            color_int = [int(c * 255) for c in color_rgb]
-
+            color_int = self.get_color(hue)
             led.set_color(color_int)
 
     def get_current_speed(self, current_time):
@@ -632,3 +655,35 @@ class PerlinNoiseEffect(Effect):
                             current_speed = self.speed * self.BEAT_SPEED_BOOST - deceleration * elapsed_time
                             return current_speed
         return self.speed
+
+    def get_color(self, hue): # the hue arg is just a number between 0 and 1 and is from the noise array.
+        # It has nothing to do with color
+        if self.color_mode == ColorMode.INTERPOLATE_HUES:
+            hue1, hue2 = self.color_params['hue1'], self.color_params['hue2']
+
+            # this code is bad bc I may want a full rainbow or I may only want red and pink. Need to handle both of these cases
+            # if hue2 < hue1:
+            #     # handle wrap-around case
+            #     print('wrap-around case')
+            #     hue2 += 1
+            #     if hue < hue1:
+            #         hue += 1
+
+            #print('hue old: ', hue)
+            # interpolate between hue1 and hue2
+            hue = hue1 + (hue2 - hue1) * hue
+
+
+
+        elif self.color_mode == ColorMode.HUE_TO_WHITE:
+            hue1 = self.color_params['hue1']
+            # interpolate between hue1 and white (hue 0, saturation 0)
+            hue = hue1 + (0 - hue1) * hue
+            self.saturation = (1 - hue) * self.saturation
+
+        # convert HSV to RGB and then to 0-255 range
+        color_rgb = colorsys.hsv_to_rgb(hue, self.saturation, 1)
+        color_int = [int(c * 255) for c in color_rgb]
+
+        return color_int
+

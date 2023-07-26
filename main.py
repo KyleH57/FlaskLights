@@ -443,6 +443,9 @@ def worker(conn, frequency=20.0):
                 # print num of tatums
                 print("num of tatums: " + str(len(tatums)))
 
+                # print song time signature
+                print("time signature: " + str(analysis_data["track"]["time_signature"]) + "/4")
+
                 my_constellation.remove_all_effects()
 
                 song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id, song_duration, sections, bars, beats, segments, tatums, analysis_data["track"]["time_signature"])
