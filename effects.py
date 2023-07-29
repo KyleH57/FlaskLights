@@ -559,7 +559,7 @@ class PerlinNoiseGenerator:
         self.scale = scale
         self.z = 0
 
-        self.CLIPPING_THRESHOLD = 0.45
+        self.CLIPPING_THRESHOLD = 0.50
 
     def generate_perlin_noise(self, speed):
         noise_array = np.zeros((self.height, self.width))

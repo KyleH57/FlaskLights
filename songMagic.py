@@ -3,6 +3,7 @@ import random
 import time
 
 import effects as ef
+from audioChroma import run_som
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -90,17 +91,19 @@ class Song:
         self.current_segment_index = 0
         self.last_segment = None
 
-        threshold = 125  # make smaller if too many things are getting clustered together
-        similar_sets = find_similar_sets(self.segments_by_section, threshold)
-        # print the set size of each set
-        # for set_name, set_vectors in self.segments_by_section.items():
-        #     print(f"Set {set_name} has {set_vectors.shape[0]} vectors")
-        #
-        for set_name, similar_set_names in similar_sets.items():
-            print(f"Set {set_name} is similar to sets {similar_set_names}")
 
-        if len(similar_sets) == 0:
-            print("no similar sets found")
+        # cluster fail
+        # threshold = 125  # make smaller if too many things are getting clustered together
+        # similar_sets = find_similar_sets(self.segments_by_section, threshold)
+        # # print the set size of each set
+        # # for set_name, set_vectors in self.segments_by_section.items():
+        # #     print(f"Set {set_name} has {set_vectors.shape[0]} vectors")
+        # #
+        # for set_name, similar_set_names in similar_sets.items():
+        #     print(f"Set {set_name} is similar to sets {similar_set_names}")
+        #
+        # if len(similar_sets) == 0:
+        #     print("no similar sets found")
 
         # this is for the volume bar
         # Calculate the 2.5th and 97.5th percentiles
@@ -115,18 +118,28 @@ class Song:
 
         self.is_special(song_id)
 
+        # # SOM stuff
+        # # create a new array of segments with the timbre data
+        # self.X_list = []
+        # for segment in segments:
+        #     self.X_list.append(segment["timbre"])
+        #
+        # self.SOM_stuff_idk = run_som(self.X_list, self.song_title, segments, True)
+
 
         self.start_song()
         # init done
 
     def start_song(self): # this is called only once when the song starts
         self.update_time()
+
+        # beat perlin
         PERLIN_SIZE = 75  # this is specific to orion
         self.constellation.add_effect(
             ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
                                  PERLIN_SIZE, 0.006, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':(0.0/6), 'hue2':(5.999/6)}))
 
-        print("song started")
+
 
 
     def set_corrected_section_times(self, song_id):
@@ -358,13 +371,17 @@ class Song:
         #     else:
         #         print("Time signature not supported")
         #         print(self.time_signature)
-        #
-        # # if segment changed, do something
-        # if self.update_segments():
-        #     # print("Segment changed")
-        #     # print(self.current_segment)
-        #     # get timbre data
-        #     pass
+
+
+
+        # if segment changed, do something
+        if self.update_segments():
+            # failed SOM effect
+            # scaledX = self.SOM_stuff_idk[self.current_segment_index][0] * 100 - 1000
+            # scaledY = self.SOM_stuff_idk[self.current_segment_index][1] * 60 - 600
+            # time_until_next_segment = self.current_segment["duration"]
+            # self.constellation.add_effect(ef.AnimatedRingEffect(self.constellation, self.current_song_time, time_until_next_segment, 200, 400, (255, 255, 255), 0, 0, scaledX, scaledY, 1, False))
+            pass
 
     def update_sections(self):
         if self.corrected_section_times is None:

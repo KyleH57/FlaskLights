@@ -76,7 +76,7 @@ def run_som(X_list, song_name, segments, debug=False):
 
     if debug:
         # Save the plot to a file
-        plt.savefig('som_plot_' + str(song_name) + '.png')
+        plt.savefig('SOM_images/som_plot_' + str(song_name) + '.png')
 
         # print the length of the segments array
         print("segments length: " + str(len(segments)))

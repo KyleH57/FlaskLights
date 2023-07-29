@@ -27,7 +27,6 @@ import plotly.graph_objs as go
 
 # LED CTRL
 # import ledCtrl
-# from audioChroma import run_som
 from audioChroma import *
 # from songMagic import SongLookup, Song
 from Constellation2 import Constellation
@@ -398,17 +397,8 @@ def worker(conn, frequency=20.0):
                 tatums = analysis_data["tatums"]
 
 
-                # # create a new array of segments with the timbre data
-                # X_list = []
-                # for segment in segments:
-                #     X_list.append(segment["timbre"])
-                #
-                # # SOM stuff
-                # SOM_stuff_idk = run_som(X_list, song_name, segments, False)
-                #
-                # timbre_colors = []
-                # for i in range(20):
-                #     timbre_colors.append(random_color(1.0))
+
+
 
 
                 current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
