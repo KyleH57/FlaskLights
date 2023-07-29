@@ -133,12 +133,35 @@ class Song:
     def start_song(self): # this is called only once when the song starts
         self.update_time()
 
-        # beat perlin
-        PERLIN_SIZE = 75  # this is specific to orion
-        self.constellation.add_effect(
-            ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-                                 PERLIN_SIZE, 0.006, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':(0.0/6), 'hue2':(5.999/6)}))
+        time_until_end_of_intro = self.sections[0]["start"] + self.sections[0]["duration"] - self.current_song_time
+        if time_until_end_of_intro < 10: # algorithm worked, add loading effect with explosion at end
+            self.constellation.add_effect(
+                ef.BreakBarEffect(self.constellation, self.current_song_time, time_until_end_of_intro, 410,
+                                  (255, 255, 255)))
 
+            self.constellation.add_effect(
+                ef.AnimatedRingEffect(self.constellation, self.sections[1]["start"], 1, 200, 400, (255, 255, 255), 1200,
+                                      1200 * -1.618, 0, 0, 1, False))
+
+
+
+        else: #algo failed, default to perlin noise
+
+            BASE_PERLIN_SIZE = 65
+
+            hue1 = 0.44
+            hue2 = 0.77
+
+            perlin_size = BASE_PERLIN_SIZE * abs(hue2 - hue1)
+
+            perlin_speed = perlin_size * 0.0008
+
+            self.constellation.add_effect(
+                ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
+                                     perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+            self.constellation.add_effect(
+                ef.PerlinNoiseEffect(self.constellation, self.current_song_time + time_until_end_of_intro, self.time_until_song_end, 1.0, 1,
+                                     perlin_size, perlin_speed, (64, 64), None, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
 
 
 
@@ -334,9 +357,7 @@ class Song:
             # self.constellation.add_effect(
             #     ef.HexagonProgressEffect(self.constellation, self.current_song_time, time_until_next_section,
             #                              self.section_color, (111, 111, 111), 7, 2, 0))
-            # self.constellation.add_effect(
-            #     ef.AnimatedRingEffect(self.constellation, self.current_song_time, 1, 200, 400, self.section_color, 1200,
-            #                           1200 * -1.618, 0, 0, 1, False))
+
 
 
 

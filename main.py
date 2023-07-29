@@ -129,17 +129,31 @@ def index():
     else:
         return "Request failed: " + resp.text, resp.status_code
 
-    # Get loudness of sections
+    # Get loudness of sections and beat confidence
     sections = []
     beats_confidence_per_section = []
+
+    total_beat_confidence = 0  # total beat confidence for whole song
+    total_beats = 0  # total number of beats for whole song
+
     for section in resp.json()["sections"]:
         sections.append([section["start"], section["duration"], section["loudness"]])  # start of section
+
         beats_in_section = [beat for beat in resp.json()["beats"] if
                             section["start"] <= beat["start"] < (section["start"] + section["duration"])]
-        avg_confidence = sum(beat["confidence"] for beat in beats_in_section) / len(
-            beats_in_section) if beats_in_section else 0
+
+        if beats_in_section:
+            avg_confidence = sum(beat["confidence"] for beat in beats_in_section) / len(beats_in_section)
+            total_beat_confidence += sum(beat["confidence"] for beat in beats_in_section)
+            total_beats += len(beats_in_section)
+        else:
+            avg_confidence = 0
+
         beats_confidence_per_section.append([section["start"], avg_confidence])
         beats_confidence_per_section.append([section["start"] + section["duration"], avg_confidence])  # end of section
+
+    # Calculate average beat confidence for the whole song
+    average_beat_confidence_whole_song = total_beat_confidence / total_beats if total_beats else 0
 
     loudness_data = {
         'x': [section[0] for section in sections],  # start time of each section
@@ -244,6 +258,7 @@ def index():
     refresh_interval = math.ceil(
         (currently_playing_data["item"]["duration_ms"] - currently_playing_data["progress_ms"]) / 1000)
     return render_template('index.html', song=song, artist=artist, song_id=web_song_id, song_bpm=web_song_bpm,
+                           song_bc=average_beat_confidence_whole_song,
                            refresh_interval=refresh_interval,
                            loudness_chart_html=loudness_chart_html,
                            section_confidences_chart_html=section_confidences_chart_html,

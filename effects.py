@@ -514,6 +514,79 @@ class AnimatedRingEffect(DrawRingEffect):
             return True
 
 
+class DrawRectangleEffect(Effect):
+    def __init__(self, constellation, start_time, duration, top_left, bottom_right, color, layer):
+        super().__init__()
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.top_left = top_left
+        self.bottom_right = bottom_right
+        self.color = color
+        self.layer = layer
+
+
+    def run(self, current_song_time):
+        if not self.is_done(current_song_time) and current_song_time >= self.start_time:
+            for led in self.constellation.leds:
+                led_x, led_y = led.xCoord_centroid, led.yCoord_centroid
+
+                if self.top_left[0] <= led_x <= self.bottom_right[0] and self.top_left[1] <= led_y <= self.bottom_right[1]:
+                    led.set_color(self.color)
+            return True
+        else:
+            return False
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time:
+            return True
+
+
+
+class BreakBarEffect(Effect):
+    def __init__(self, constellation, start_time, duration, thickness, color, layer=1):
+        super().__init__()
+        self.constellation = constellation
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+        self.thickness = thickness
+        self.color = color
+        self.start_top_left = (-1000, thickness/2)
+        self.start_bottom_right = (1000, -thickness/2)
+        self.end_top_left = (0, thickness/2)
+        self.end_bottom_right = (0, -thickness/2)
+        self.layer = layer
+
+    def run(self, current_song_time):
+        if not self.is_done(current_song_time) and current_song_time >= self.start_time:
+            progress = (current_song_time - self.start_time) / self.duration
+
+            current_top_left = (
+                self.start_top_left[0] + progress * (self.end_top_left[0] - self.start_top_left[0]),
+                self.start_top_left[1]
+            )
+
+            current_bottom_right = (
+                self.start_bottom_right[0] + progress * (self.end_bottom_right[0] - self.start_bottom_right[0]),
+                self.start_bottom_right[1]
+            )
+
+            for led in self.constellation.leds:
+                led_x, led_y = led.xCoord_centroid, led.yCoord_centroid
+
+                if current_top_left[0] <= led_x <= current_bottom_right[0] and current_bottom_right[1] <= led_y <= current_top_left[1]:
+                    led.set_color(self.color)
+            return True
+        else:
+            return False
+
+    def is_done(self, current_song_time):
+        if current_song_time >= self.end_time:
+            return True
+
+
 class VolumeBarEffect(Effect):
     def __init__(self, constellation, bar_index, start_time, duration, value, color, layer=0):
         super().__init__()
@@ -600,7 +673,7 @@ class PerlinNoiseEffect(Effect):
         self.beats = beats or []  # Use an empty list if beats is None
         self.boost_beat_parity = boost_beat_parity  # Use 'even', 'odd' or 'both'
         self.BEAT_SPEED_FRACTION = 0.5  # speed boost will last for this fraction of the beat
-        self.BEAT_SPEED_BOOST = 7
+        self.BEAT_SPEED_BOOST = 5
         self.color_mode = color_mode
         self.color_params = color_params or {}
 
