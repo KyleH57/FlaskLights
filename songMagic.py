@@ -3,7 +3,8 @@ import random
 import time
 
 import effects as ef
-from audioChroma import run_som
+from effects2 import fourfour
+#from audioChroma import run_som
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -141,7 +142,14 @@ class Song:
 
             self.constellation.add_effect(
                 ef.AnimatedRingEffect(self.constellation, self.sections[1]["start"], 1, 200, 400, (255, 255, 255), 1200,
-                                      1200 * -1.618, 0, 0, 1, False))
+                                      1200 * -1.618, 0, 0, 2, False))
+
+
+            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.sections[1]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
+            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
+            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
+            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[4]["start"], self.sections[4]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
+
 
 
 
@@ -428,16 +436,16 @@ class Song:
                         return True
                     break
 
-    def update_beats(self):
-        for beat in self.beats:
-            if beat["start"] <= self.current_song_time < beat["start"] + beat["duration"]:  # beat has changed
-
-                self.current_beat_index = self.beats.index(beat)
-
-                if self.current_beat_index != self.last_beat:
-                    self.last_beat = self.current_beat_index
-                    return True  # beat has changed
-                return False  # beat has not changed
+    # def update_beats(self):
+    #     for beat in self.beats:
+    #         if beat["start"] <= self.current_song_time < beat["start"] + beat["duration"]:  # beat has changed
+    #
+    #             self.current_beat_index = self.beats.index(beat)
+    #
+    #             if self.current_beat_index != self.last_beat:
+    #                 self.last_beat = self.current_beat_index
+    #                 return True  # beat has changed
+    #             return False  # beat has not changed
 
     def update_segments(self):
         for segment in self.segments:
