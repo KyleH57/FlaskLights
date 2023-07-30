@@ -102,14 +102,17 @@ def index():
 
     # request to get currently playing song
     resp = requests.get("https://api.spotify.com/v1/me/player/currently-playing", headers=headers)
+
+
     if resp.status_code == 200:
+        song_id = resp.json()["item"]["id"]
         siteTextData = resp.json()["item"]["name"] + " by " + resp.json()["item"]["artists"][0][
             "name"] + " is currently playing."
 
         currently_playing_data = resp.json()
         if currently_playing_data["progress_ms"] == last_currently_playing_data_progress_ms:
             print("Paused")
-            parent_conn.send([0, 0, 0])
+            parent_conn.send([0, 0, 0, 0])
             return render_template('index.html', song="Paused", artist="Paused", refresh_interval=9999)
         else:
             last_currently_playing_data_progress_ms = currently_playing_data["progress_ms"]
@@ -121,13 +124,24 @@ def index():
         return "Request failed: " + resp.text, resp.status_code
 
     # request to get audio analysis of song
-    resp = requests.get("https://api.spotify.com/v1/audio-analysis/" + resp.json()["item"]["id"], headers=headers)
+    resp = requests.get("https://api.spotify.com/v1/audio-analysis/" + song_id, headers=headers)
     if resp.status_code == 200:
-        # send timestamp, currently playing data, and audio analysis data to the child process
-        parent_conn.send([local_timestamp, currently_playing_data, resp.json()])
+        audio_analysis_data = resp.json()
+
 
     else:
         return "Request failed: " + resp.text, resp.status_code
+
+    resp = requests.get("https://api.spotify.com/v1/audio-features/" + song_id, headers=headers)
+    if resp.status_code == 200:
+        audio_features_data = resp.json()
+
+    else:
+        return "Request failed: " + resp.text, resp.status_code
+
+
+    # send timestamp, currently playing data, and audio analysis data to the child process
+    parent_conn.send([local_timestamp, currently_playing_data, audio_analysis_data, audio_features_data])
 
     # Get loudness of sections and beat confidence
     sections = []
@@ -136,10 +150,10 @@ def index():
     total_beat_confidence = 0  # total beat confidence for whole song
     total_beats = 0  # total number of beats for whole song
 
-    for section in resp.json()["sections"]:
+    for section in audio_analysis_data["sections"]:
         sections.append([section["start"], section["duration"], section["loudness"]])  # start of section
 
-        beats_in_section = [beat for beat in resp.json()["beats"] if
+        beats_in_section = [beat for beat in audio_analysis_data["beats"] if
                             section["start"] <= beat["start"] < (section["start"] + section["duration"])]
 
         if beats_in_section:
@@ -196,7 +210,7 @@ def index():
 
     # Get section confidences
     section_confidences = []
-    for section in resp.json()["sections"]:
+    for section in audio_analysis_data["sections"]:
         section_confidences.append([section["start"], section["confidence"]])  # start of section
         section_confidences.append([section["start"] + section["duration"], section["confidence"]])  # end of section
 
@@ -231,10 +245,10 @@ def index():
 
     web_song_id = currently_playing_data["item"]["id"]
 
-    web_song_bpm = resp.json()["track"]["tempo"]
+    web_song_bpm = audio_analysis_data["track"]["tempo"]
 
     #histogram stuff
-    timbre_data = [segment["timbre"][0] for segment in resp.json()["segments"]]
+    timbre_data = [segment["timbre"][0] for segment in audio_analysis_data["segments"]]
 
 
 
@@ -262,7 +276,7 @@ def index():
                            refresh_interval=refresh_interval,
                            loudness_chart_html=loudness_chart_html,
                            section_confidences_chart_html=section_confidences_chart_html,
-                           timbre_histogram_html=timbre_histogram_html)
+                           timbre_histogram_html=timbre_histogram_html,audio_features=audio_features_data)
 
 
 def random_color(max_brightness):
@@ -411,10 +425,8 @@ def worker(conn, frequency=20.0):
                 # add taum data to the array
                 tatums = analysis_data["tatums"]
 
-
-
-
-
+                # add features data to the array
+                features_data = data[3]
 
                 current_time = int(round(time.time() * 1000))  # current time in UNIX milliseconds
 
@@ -453,7 +465,8 @@ def worker(conn, frequency=20.0):
 
                 my_constellation.remove_all_effects()
 
-                song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id, song_duration, sections, bars, beats, segments, tatums, analysis_data["track"]["time_signature"])
+
+                song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id, song_duration, sections, bars, beats, segments, tatums, analysis_data["track"]["time_signature"], features_data)
 
         # end of do once
 
@@ -465,6 +478,7 @@ def worker(conn, frequency=20.0):
 
 
         if song_playing:
+            idle_rainbow_playing = False
 
             song_obj.add_effects_while_running()
 
@@ -484,11 +498,6 @@ def worker(conn, frequency=20.0):
             # current_song_data = []
             # current_song_data.append(time.time())
             my_constellation.run_effects(time.time())
-
-
-            pass
-
-
 
 
         wait_for_next_iteration_no_sleep(frequency, start_time)

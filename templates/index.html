@@ -13,6 +13,12 @@
     <p>The song id is {{ song_id }}.</p>
     <p>The bpm is {{ song_bpm }}.</p>
     <p>The beat confidence is {{ song_bc }}.</p>
+    <p>The danceability of the song is {{ audio_features.danceability }}.</p>
+    <p>The energy of the song is {{ audio_features.energy }}.</p>
+    <p>The loudness of the song is {{ audio_features.loudness }}.</p>
+    <p>The valence of the song is {{audio_features.valence}}.</p>
+
+
 
     <!-- Set dimensions for chart divs -->
     <div id="loudness-chart" style="width:100%;height:600px;">{{ loudness_chart_html|safe }}</div>

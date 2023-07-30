@@ -54,7 +54,7 @@ def next_color(max_brightness, last_color, min_advance=13, max_advance=43):
 
 class Song:
     def __init__(self, constellation, local_timestamp, current_song_timeAPI, song_title, song_id, total_duration,
-                 sections, bars, beats, segments, tatums, time_signature=4):
+                 sections, bars, beats, segments, tatums, time_signature, audio_features):
         self.constellation = constellation
         self.local_timestamp = local_timestamp
         self.current_song_timeAPI = current_song_timeAPI
@@ -63,6 +63,13 @@ class Song:
         self.song_title = song_title
         self.song_id = song_id
         self.total_duration = total_duration
+
+        # self.audio_features = audio_features
+        self.energy = audio_features["energy"]
+        self.danceability = audio_features["danceability"]
+        self.valence = audio_features["valence"]
+        self.loudness = audio_features["loudness"]
+
 
         self.sections = sections
         self.bars = bars
@@ -133,6 +140,7 @@ class Song:
 
     def start_song(self): # this is called only once when the song starts
         self.update_time()
+        algo_fail = False
 
         time_until_end_of_intro = self.sections[0]["start"] + self.sections[0]["duration"] - self.current_song_time
         if time_until_end_of_intro < 10: # algorithm worked, add loading effect with explosion at end
@@ -144,16 +152,24 @@ class Song:
                 ef.AnimatedRingEffect(self.constellation, self.sections[1]["start"], 1, 200, 400, (255, 255, 255), 1200,
                                       1200 * -1.618, 0, 0, 2, False))
 
+            self.constellation.add_effect(ef.RainbowWaveEffect(self.constellation, self.sections[1]["start"], self.total_duration - self.sections[1]["start"], 3000, 750, 1.0))
 
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.sections[1]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[4]["start"], self.sections[4]["duration"], self.beats, (255, 255, 255), (0, 255, 255), 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.sections[1]["duration"], self.beats, (0, 255, 0), (0, 255, 255), 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, (255, 255, 0), (0, 255, 255), 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, (0, 255, 0), (0, 255, 255), 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[4]["start"], self.sections[4]["duration"], self.beats, (0, 255, 0), (0, 255, 255), 1))
+        else:
+            algo_fail = True
+
+        if self.danceability < 0.6:
+            algo_fail = True
+
+            # chill song
 
 
 
 
-        else: #algo failed, default to perlin noise
+        if algo_fail: #algo failed, default to perlin noise
 
             BASE_PERLIN_SIZE = 65
 

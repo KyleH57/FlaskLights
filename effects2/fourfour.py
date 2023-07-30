@@ -23,6 +23,7 @@ class FourFour(ef.Effect):
         }
 
         self.constellation.add_effect(hp.HexagonProgressEffect(self.constellation, self.start_time, self.duration, (0, 255, 0), (255, 0, 0), 10, self.layer + 1))
+        # self.constellation.add_effect(ef.FillAllEffect(self.constellation, self.start_time, self.duration, (40, 40, 40), 0))
 
     def run(self, current_song_time):
         FADE_IN_TIME = 0.07
