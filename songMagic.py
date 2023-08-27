@@ -2,13 +2,14 @@ import colorsys
 import random
 import time
 
-import effects as ef
-from effects2 import fourfour
-#from audioChroma import run_som
-
 import numpy as np
 from scipy.spatial.distance import cdist
 from collections import defaultdict
+
+import effects as ef
+from effects2 import fourfour
+#from audioChroma import run_som
+import lyrics_chroma as lc
 
 
 def calculate_avg_distance(set1, set2):
@@ -121,7 +122,7 @@ class Song:
         self.range = self.upper_bound - self.lower_bound
 
         self.section_color = [255, 0, 0]
-        self.color2 = None
+        self.accent_color = None
         self.color3 = None
 
         self.is_special(song_id)
@@ -135,6 +136,8 @@ class Song:
         # self.SOM_stuff_idk = run_som(self.X_list, self.song_title, segments, True)
 
 
+
+
         self.start_song()
         # init done
 
@@ -142,29 +145,56 @@ class Song:
         self.update_time()
         algo_fail = False
 
+        # generate a ramdom number between 0 and 2
+        pattern = random.randint(0, 2)
+
         time_until_end_of_intro = self.sections[0]["start"] + self.sections[0]["duration"] - self.current_song_time
-        if time_until_end_of_intro < 10: # algorithm worked, add loading effect with explosion at end
+        if self.danceability < 0.55 and self.valence < 0.5:
+            algo_fail = True
+            print("Boring song, using algo fail")
+        elif time_until_end_of_intro < 10: # algorithm worked, add loading effect with explosion at end
+            info = lc.get_color_data(self.song_id)
+
+            # info = lc.get_color_data(unique_id, debug=True)
+
+            # info = lc.get_color_data(unique_id, replace=True, debug=True)
+            # info = lc.get_color_data(unique_id, replace=True, debug=False)
+
+            self.section_color = info['primaryColorRGB']
+            self.accent_color = info['accentColorRGB']
+
+            for association in info['lyricAssociations']:
+                print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
+                self.constellation.add_effect(
+                    ef.AnimatedRingEffect(self.constellation, float(association['startTime']) / 1000.0, float(association['duration']) / 1000.0, 200, 400, association['colorRGB'],
+                                          4,
+                                          0, 0, 0, 2, False))
+
+
             self.constellation.add_effect(
                 ef.BreakBarEffect(self.constellation, self.current_song_time, time_until_end_of_intro, 410,
                                   (255, 255, 255)))
+
+
+
 
             self.constellation.add_effect(
                 ef.AnimatedRingEffect(self.constellation, self.sections[1]["start"], 1, 200, 400, (255, 255, 255), 1200,
                                       1200 * -1.618, 0, 0, 2, False))
 
-            self.constellation.add_effect(ef.RainbowWaveEffect(self.constellation, self.sections[1]["start"], self.total_duration - self.sections[1]["start"], 3000, 750, 1.0))
 
-            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.sections[1]["duration"], self.beats, (0, 255, 0), (0, 255, 255), 1))
-            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, (255, 255, 0), (0, 255, 255), 1))
-            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, (0, 255, 0), (0, 255, 255), 1))
-            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[4]["start"], self.sections[4]["duration"], self.beats, (0, 255, 0), (0, 255, 255), 1))
+
+
+                # self.constellation.add_effect(ef.RainbowWaveEffect(self.constellation, self.sections[1]["start"], self.total_duration - self.sections[1]["start"], 3000, 750, 1.0))
+
+            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.sections[1]["duration"], self.beats, self.section_color, self.accent_color, 1))
+            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, self.section_color, self.accent_color, 1))
+            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, self.section_color, self.accent_color, 1))
+
         else:
             algo_fail = True
 
-        if self.danceability < 0.6:
-            algo_fail = True
 
-            # chill song
 
 
 
@@ -173,19 +203,19 @@ class Song:
 
             BASE_PERLIN_SIZE = 65
 
-            hue1 = 0.44
-            hue2 = 0.77
+            hue1 = 0.0
+            hue2 = 1.0
 
             perlin_size = BASE_PERLIN_SIZE * abs(hue2 - hue1)
 
-            perlin_speed = perlin_size * 0.0008
+            perlin_speed = perlin_size * 0.0002
 
             self.constellation.add_effect(
                 ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
                                      perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
-            self.constellation.add_effect(
-                ef.PerlinNoiseEffect(self.constellation, self.current_song_time + time_until_end_of_intro, self.time_until_song_end, 1.0, 1,
-                                     perlin_size, perlin_speed, (64, 64), None, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+            # self.constellation.add_effect(
+            #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time + time_until_end_of_intro, self.time_until_song_end, 1.0, 1,
+            #                          perlin_size, perlin_speed, (64, 64), None, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
 
 
 

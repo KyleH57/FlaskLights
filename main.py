@@ -40,11 +40,12 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 
 SPOTIFY_CLIENT_ID = "fdeab218fc904db89d4f1d278f268002"
 
-# read a file and set the client secret
+
 with open("config.cfg", "r") as f:
-    SPOTIFY_CLIENT_SECRET = f.read().strip()
-
-
+    lines = f.readlines()
+    SPOTIFY_CLIENT_SECRET = lines[0].strip()
+    os.environ["SPOTIFY_COOKIE"] = lines[1].strip()
+    os.environ["OPENAI_API_KEY"] = lines[2].strip()
 
 SPOTIFY_REDIRECT_URI = "http://192.168.0.152:5000/callback"
 SPOTIFY_AUTHORIZATION_URL = "https://accounts.spotify.com/authorize"
