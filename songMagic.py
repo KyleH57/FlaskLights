@@ -121,9 +121,8 @@ class Song:
         self.upper_bound = np.percentile(timbre_data, 97.5)  # TODO: need to update for x2-12
         self.range = self.upper_bound - self.lower_bound
 
-        self.section_color = [255, 0, 0]
+        self.primary_color = [255, 255, 255]
         self.accent_color = None
-        self.color3 = None
 
         self.is_special(song_id)
 
@@ -143,32 +142,40 @@ class Song:
 
     def start_song(self): # this is called only once when the song starts
         self.update_time()
-        algo_fail = False
+        algo_fail = True
 
         # generate a ramdom number between 0 and 2
         pattern = random.randint(0, 2)
 
+        # # get song lyric info
+        # info = lc.get_color_data(self.song_id)
+        #
+        # # call it again to use the cached data. There is a weird bug where the 0x color gets used instead of (r,g,b)
+        # info = lc.get_color_data(self.song_id)
+        # self.primary_color = info['primaryColorRGB']
+        # self.accent_color = info['accentColorRGB']
+        # print("Primary color:", self.primary_color)
+        # print("Accent color:", self.accent_color)
+        #
+        # for association in info['lyricAssociations']:
+        #     print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
+        #     self.constellation.add_effect(
+        #         ef.AnimatedRingEffect(self.constellation, float(association['startTime']) / 1000.0,
+        #                               float(association['duration']) / 1000.0, 200, 400, association['colorRGB'],
+        #                               4,
+        #                               0, 0, 0, 2, False))
         time_until_end_of_intro = self.sections[0]["start"] + self.sections[0]["duration"] - self.current_song_time
         if self.danceability < 0.55 and self.valence < 0.5:
             algo_fail = True
             print("Boring song, using algo fail")
         elif time_until_end_of_intro < 10: # algorithm worked, add loading effect with explosion at end
-            info = lc.get_color_data(self.song_id)
+
 
             # info = lc.get_color_data(unique_id, debug=True)
 
             # info = lc.get_color_data(unique_id, replace=True, debug=True)
             # info = lc.get_color_data(unique_id, replace=True, debug=False)
 
-            self.section_color = info['primaryColorRGB']
-            self.accent_color = info['accentColorRGB']
-
-            for association in info['lyricAssociations']:
-                print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
-                self.constellation.add_effect(
-                    ef.AnimatedRingEffect(self.constellation, float(association['startTime']) / 1000.0, float(association['duration']) / 1000.0, 200, 400, association['colorRGB'],
-                                          4,
-                                          0, 0, 0, 2, False))
 
 
             self.constellation.add_effect(
@@ -187,13 +194,14 @@ class Song:
 
                 # self.constellation.add_effect(ef.RainbowWaveEffect(self.constellation, self.sections[1]["start"], self.total_duration - self.sections[1]["start"], 3000, 750, 1.0))
 
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.sections[1]["duration"], self.beats, self.section_color, self.accent_color, 1))
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, self.section_color, self.accent_color, 1))
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, self.section_color, self.accent_color, 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.sections[1]["duration"], self.beats, self.section_color, self.accent_color, 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, self.section_color, self.accent_color, 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, self.section_color, self.accent_color, 1))
 
         else:
+            print("Intro detect fail")
+            print(time_until_end_of_intro)
             algo_fail = True
-
 
 
 
@@ -208,7 +216,7 @@ class Song:
 
             perlin_size = BASE_PERLIN_SIZE * abs(hue2 - hue1)
 
-            perlin_speed = perlin_size * 0.0002
+            perlin_speed = perlin_size * 0.0001
 
             self.constellation.add_effect(
                 ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
@@ -392,9 +400,9 @@ class Song:
 
         # if section changed, do something
         if self.update_sections() and not self.mapped_song:
-            self.section_color = next_color(1, self.section_color)
-            self.color2 = next_color(1, self.section_color)
-            self.color3 = next_color(1, self.color2)
+            # self.primary_color = next_color(1, self.section_color)
+            # self.color2 = next_color(1, self.section_color)
+            # self.color3 = next_color(1, self.color2)
 
             if self.corrected_section_times is None:
                 # get time until next section

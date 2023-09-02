@@ -82,7 +82,6 @@ def make_gpt4_api_call(data):
              "    \"startTime\": \"<Start time of the line>\",\n          " \
              "  \"colorRGB\": \"<Associated color RGB code>\",\n         " \
              "   \"reasoning\": \"<Only used in debug mode>\"\n        },\n     " \
-             "   // ... up to six entries\n    ]\n}\n\nRGB color code should be in the format of 0xRRGGBB where " \
              "RR, GG, BB are from 0-FF. Do not provide any other data other than JSON data."
 
     response = openai.ChatCompletion.create(
@@ -204,6 +203,8 @@ def get_color_data(song_id, replace=False, debug=False):
         if debug:
             print("Data saved to database")
             print_lyric_color_info(json_data)
+
+
 
 
 
