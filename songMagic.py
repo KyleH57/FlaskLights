@@ -147,15 +147,15 @@ class Song:
         # generate a ramdom number between 0 and 2
         pattern = random.randint(0, 2)
 
-        # # get song lyric info
-        # info = lc.get_color_data(self.song_id)
-        #
-        # # call it again to use the cached data. There is a weird bug where the 0x color gets used instead of (r,g,b)
-        # info = lc.get_color_data(self.song_id)
-        # self.primary_color = info['primaryColorRGB']
-        # self.accent_color = info['accentColorRGB']
-        # print("Primary color:", self.primary_color)
-        # print("Accent color:", self.accent_color)
+        # get song lyric info
+        info = lc.get_color_data(self.song_id)
+
+        # call it again to use the cached data. There is a weird bug where the 0x color gets used instead of (r,g,b)
+        info = lc.get_color_data(self.song_id)
+        self.primary_color = info['primaryColorRGB']
+        self.accent_color = info['accentColorRGB']
+        print("Primary color:", self.primary_color)
+        print("Accent color:", self.accent_color)
         #
         # for association in info['lyricAssociations']:
         #     print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
@@ -211,8 +211,11 @@ class Song:
 
             BASE_PERLIN_SIZE = 65
 
-            hue1 = 0
-            hue2 = 1.0
+            # convert rgb to hue
+            hue1 = colorsys.rgb_to_hsv(self.primary_color[0] / 255, self.primary_color[1] / 255, self.primary_color[2] / 255)[0]
+            hue2 = colorsys.rgb_to_hsv(self.accent_color[0] / 255, self.accent_color[1] / 255, self.accent_color[2] / 255)[0]
+
+
 
             perlin_size = BASE_PERLIN_SIZE * abs(hue2 - hue1)
 

@@ -28,18 +28,26 @@ def parse_info(json_data):
     return json_data
 
 
-def hex_to_rgb(hex_color):
-    if hex_color.startswith('0x'):
-        hex_color = hex_color[2:]  # Remove '0x' prefix
-    elif hex_color.startswith('#'):
-        hex_color = hex_color[1:]  # Remove '#' prefix
+def hex_to_rgb(color):
+    if isinstance(color, str):
+        if color.startswith('0x'):
+            color = color[2:]  # Remove '0x' prefix
+        elif color.startswith('#'):
+            color = color[1:]  # Remove '#' prefix
 
-    if len(hex_color) != 6:
-        raise ValueError("Invalid hexadecimal color code. It should be 6 characters long.")
+        if len(color) != 6:
+            raise ValueError("Invalid hexadecimal color code. It should be 6 characters long.")
 
-    stuff = tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+        return tuple(int(color[i:i + 2], 16) for i in (0, 2, 4))
 
-    return stuff
+    elif isinstance(color, list):
+        if len(color) != 3:
+            raise ValueError("Invalid RGB color list. It should contain exactly 3 values.")
+
+        return tuple(color)
+
+    else:
+        raise TypeError("Invalid type for color. Expected str or list.")
 
 
 def print_lyrics(unique_id):
