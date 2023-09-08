@@ -270,7 +270,7 @@ def index():
 
 
 
-    refresh_interval = math.ceil(
+    refresh_interval = math.floor(
         (currently_playing_data["item"]["duration_ms"] - currently_playing_data["progress_ms"]) / 1000)
     return render_template('index.html', song=song, artist=artist, song_id=web_song_id, song_bpm=web_song_bpm,
                            song_bc=average_beat_confidence_whole_song,

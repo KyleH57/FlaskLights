@@ -211,16 +211,22 @@ class Song:
 
             BASE_PERLIN_SIZE = 65
 
-            hue1 = 0.0
+            hue1 = 0
             hue2 = 1.0
 
             perlin_size = BASE_PERLIN_SIZE * abs(hue2 - hue1)
 
-            perlin_speed = perlin_size * 0.0001
+            # perlin_speed = abs(hue2 - hue1) * 0.1  # good for a diff of 1/6
+            # perlin_speed = abs(hue2 - hue1) * 0.0375 # good for a diff of 2/6
+            # perlin_speed = abs(hue2 - hue1) * 0.01  # good for a diff of 4/6
+            perlin_speed = abs(hue2 - hue1) * 0.00375  # good for a diff of 1
 
             self.constellation.add_effect(
                 ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
                                      perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+            # self.constellation.add_effect(
+            #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
+            #                          perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.HUE_TO_WHITE, {'hue1':hue1, 'hue2':hue2}))
             # self.constellation.add_effect(
             #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time + time_until_end_of_intro, self.time_until_song_end, 1.0, 1,
             #                          perlin_size, perlin_speed, (64, 64), None, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))

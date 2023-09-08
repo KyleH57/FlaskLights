@@ -610,7 +610,7 @@ class PerlinNoiseGenerator:
         return noise_array
 
 
-
+# set hue2 to None for white mode
 class PerlinNoiseEffect(Effect):
     def __init__(self, constellation, start_time, duration, saturation, layer, scale, speed, noise_dim, beats, boost_beat_parity, color_mode, color_params=None):
         super().__init__()
@@ -626,7 +626,7 @@ class PerlinNoiseEffect(Effect):
         self.beats = beats or []  # Use an empty list if beats is None
         self.boost_beat_parity = boost_beat_parity  # Use 'even', 'odd' or 'both'
         self.BEAT_SPEED_FRACTION = 0.5  # speed boost will last for this fraction of the beat
-        self.BEAT_SPEED_BOOST = 5
+        self.BEAT_SPEED_BOOST = 2.75 # speed boost multiplier
         self.color_mode = color_mode
         self.color_params = color_params or {}
 
@@ -652,13 +652,7 @@ class PerlinNoiseEffect(Effect):
         for led in constellation.leds:
             x = self.map_coord_to_noise(led.xCoord_centroid, 950)
             y = self.map_coord_to_noise(led.yCoord_centroid, 615)
-            # hue = noise_array[y, x]
-            # color_hsv = (hue, self.saturation, 1)
-            # color_rgb = colorsys.hsv_to_rgb(*color_hsv)
-            # # convert float RGB values to integers in the range 0 to 255
-            # color_int = [int(c * 255) for c in color_rgb]
-            #
-            # led.set_color(color_int)
+
             hue = noise_array[y, x]
             color_int = self.get_color(hue)
             led.set_color(color_int)
