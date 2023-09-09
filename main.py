@@ -140,6 +140,23 @@ def index():
     else:
         return "Request failed: " + resp.text, resp.status_code
 
+    # get next song
+    queue_resp = requests.get("https://api.spotify.com/v1/me/player/queue", headers=headers)
+    if queue_resp.status_code == 200:
+        # Assuming queue_resp.json() contains your JSON response
+        response_data = queue_resp.json()
+
+        # Check if there is at least one song in the queue
+        if response_data.get('queue') and len(response_data['queue']) > 0:
+            next_song = response_data['queue'][0]
+            next_song_id = next_song['id']
+            next_song_name = next_song['name']
+
+            print(f"Next song ID: {next_song_id}")
+            print(f"Next song name: {next_song_name}")
+        else:
+            print("The queue is empty.")
+
 
     # send timestamp, currently playing data, and audio analysis data to the child process
     parent_conn.send([local_timestamp, currently_playing_data, audio_analysis_data, audio_features_data])
@@ -366,6 +383,8 @@ def worker(conn, frequency=20.0):
     SEGMENT_LED_SPACING = 15
     SEGMENT_EDGE_SPACING = 13
     my_constellation = Constellation(ARRANGEMENT, NUM_LEDS_SEGMENT, SEGMENT_LED_SPACING, SEGMENT_EDGE_SPACING, MAX_BRIGHTNESS)
+
+    # make it so it checks if a file exists
     # my_constellation.plot_constellation()
     # my_constellation.plot_constellation_centroid()
 

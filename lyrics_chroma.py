@@ -212,10 +212,6 @@ def get_color_data(song_id, replace=False, debug=False):
             print("Data saved to database")
             print_lyric_color_info(json_data)
 
-
-
-
-
         return json_data
 
 
