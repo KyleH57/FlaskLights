@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from collections import namedtuple
 from json import JSONDecodeError
 
 from syrics.api import Spotify
@@ -122,15 +123,25 @@ def make_gpt4_api_call(data):
         return None
 
 
-
-# ... your existing imports and other code ...
-
 def get_color_data(song_id, replace=False, debug=False):
-    conn = sqlite3.connect('mydatabase.db')
+    try:
+        conn = sqlite3.connect('mydatabase.db', timeout=1)  # Added timeout parameter here
+        conn.execute("PRAGMA journal_mode=WAL")  # Added this line to set journal mode to WAL
+    except sqlite3.OperationalError as e:
+        print(f"SQLite error: {e}")
+        return
+
     c = conn.cursor()
 
-    c.execute('''CREATE TABLE IF NOT EXISTS mytable
-                 (unique_id text PRIMARY KEY, data text, version text)''')  # Making unique_id the primary key
+    try:
+        # Database operations like c.execute()
+        c.execute('''CREATE TABLE IF NOT EXISTS mytable
+                 (unique_id text PRIMARY KEY, data text, version text)''')
+        # ...
+        conn.commit()
+    except sqlite3.OperationalError as e:
+        print(f"SQLite error during operation: {e}")
+        return
 
     version_number = "1.0"
 
@@ -155,6 +166,7 @@ def get_color_data(song_id, replace=False, debug=False):
 
         sp = Spotify(os.environ["SPOTIFY_COOKIE"])
         lyric_data = sp.get_lyrics(song_id)
+
         if lyric_data is None:
             print("ERROR: lyric_data is None.")
             return None
@@ -214,6 +226,142 @@ def get_color_data(song_id, replace=False, debug=False):
 
         return json_data
 
+
+def connect_to_db():
+    try:
+        conn = sqlite3.connect('mydatabase.db', timeout=10)
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+    except sqlite3.OperationalError as e:
+        print(f"SQLite error: {e}")
+        return None
+
+
+def initialize_db(conn):
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS mytable
+                 (unique_id text PRIMARY KEY, data text, version text)''')
+    conn.commit()
+
+
+def fetch_song_from_db(conn, song_id):
+    c = conn.cursor()
+    c.execute('SELECT * FROM mytable WHERE unique_id=?', (song_id,))
+    return c.fetchone()
+
+
+def add_song_to_db(conn, song_id, debug=False):
+    c = conn.cursor()
+
+    sp = Spotify(os.environ["SPOTIFY_COOKIE"])
+    lyric_data = sp.get_lyrics(song_id)
+
+    if lyric_data is None:
+        print("ERROR: lyric_data is None.")
+        return None
+
+    response = make_gpt4_api_call(lyric_data)
+
+    if response is None:
+        return None
+
+    json_str = response['choices'][0]['message']['content']
+
+    try:
+        json_data = json.loads(json_str)
+
+
+    except JSONDecodeError as e:
+        print("ERROR: JSONDecodeError")
+        print(e)
+        print("json_str:")
+        print(json_str)
+        return None
+
+    add_duration_to_lyric_associations(json_data, lyric_data)
+
+    if debug:
+        print("GPT API Request complete:")
+        print(json_data)
+
+    json_data = parse_info(json_data)
+
+    # Convert the Python dictionary back to a JSON string
+    json_str_to_save = json.dumps(json_data)
+
+    VERSION_NUMBER = "1.0"
+
+
+    c.execute("INSERT OR REPLACE INTO mytable (unique_id, data, version) VALUES (?, ?, ?)",
+              (song_id, json_str_to_save, VERSION_NUMBER))
+
+
+    conn.commit()
+    # print the database size
+
+    # Count entries
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM mytable")
+    count = cursor.fetchone()[0]
+    print(f"Number of database entries: {count}")
+
+
+    if debug:
+        print("Data saved to database")
+        print_lyric_color_info(json_data)
+
+
+    song_info = json_str_to_save
+    if song_info:
+        c = conn.cursor()
+        c.execute("INSERT INTO mytable (unique_id, data, version) VALUES (?, ?, ?)",
+                  (song_id, song_info, "1.0"))
+        conn.commit()
+
+
+ColorDataStatus = namedtuple("ColorDataStatus", ["status", "data"])
+
+
+def get_color_data2(song_id, replace=False, debug=False, fetch_only=True):
+    # Initialize the database connection
+    conn = connect_to_db()
+
+    # Check if the database connection was successful
+    if conn is None:
+        return ColorDataStatus(status="error", data="Database connection error")
+
+    # Create or validate database tables if they don't exist
+    initialize_db(conn)
+
+    # Fetch the song data from the database
+    song_data = fetch_song_from_db(conn, song_id)
+
+    # Case: Song found in the database and 'replace' flag is False
+    if song_data and not replace:
+        conn.close()  # Close the database connection
+        return ColorDataStatus(status="success", data=json.loads(song_data[1]))
+
+    # Case: Song found in the database and 'replace' flag is True
+    elif song_data and replace:
+        # If 'fetch_only' is False, update the song data in the database
+        if not fetch_only:
+            add_song_to_db(conn, song_id, debug=debug)
+        conn.close()  # Close the database connection
+        return ColorDataStatus(status="replaced", data="Song data replaced and updated")
+
+    # Case: Song not found in the database
+    else:
+        # If 'fetch_only' is False, add the song data to the database
+        if not fetch_only:
+            add_song_to_db(conn, song_id, debug=debug)
+        conn.close()  # Close the database connection
+
+        # Differentiate between "not found" and "added" based on 'fetch_only' flag
+        if fetch_only:
+            # this is the case that happens on a live song that is not in the database
+            return ColorDataStatus(status="not_found", data="Song not found in database")
+        else:
+            return ColorDataStatus(status="added", data="Song added to database")
 
 
 def add_duration_to_lyric_associations(json_data, lyric_data):

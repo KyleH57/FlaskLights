@@ -1,7 +1,7 @@
 import colorsys
 import random
 import time
-
+import json
 import numpy as np
 from scipy.spatial.distance import cdist
 from collections import defaultdict
@@ -147,15 +147,25 @@ class Song:
         # generate a ramdom number between 0 and 2
         pattern = random.randint(0, 2)
 
-        # get song lyric info
-        info = lc.get_color_data(self.song_id)
+        # # get song lyric info
+        # info = lc.get_color_data(self.song_id)
+        #
+        # # call it again to use the cached data. There is a weird bug where the 0x color gets used instead of (r,g,b)
+        # info = lc.get_color_data(self.song_id)
 
-        # call it again to use the cached data. There is a weird bug where the 0x color gets used instead of (r,g,b)
-        info = lc.get_color_data(self.song_id)
-        self.primary_color = info['primaryColorRGB']
-        self.accent_color = info['accentColorRGB']
-        print("Primary color:", self.primary_color)
-        print("Accent color:", self.accent_color)
+        test_info = lc.get_color_data2(self.song_id, debug=True, fetch_only=True, replace=False)
+
+        if test_info.status == "not_found":
+            print("song not found, failsafe mode")
+            algo_fail = True
+        elif test_info.status == "success":
+            print("song found, using cached data")
+            info = test_info.data
+
+            self.primary_color = info['primaryColorRGB']
+            self.accent_color = info['accentColorRGB']
+            print("Primary color:", self.primary_color)
+            print("Accent color:", self.accent_color)
         #
         # for association in info['lyricAssociations']:
         #     print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
@@ -168,7 +178,7 @@ class Song:
         if self.danceability < 0.55 and self.valence < 0.5:
             algo_fail = True
             print("Boring song, using algo fail")
-        elif time_until_end_of_intro < 10: # algorithm worked, add loading effect with explosion at end
+        elif time_until_end_of_intro < 10 and not algo_fail: # algorithm worked, add loading effect with explosion at end
 
 
             # info = lc.get_color_data(unique_id, debug=True)
