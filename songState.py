@@ -29,6 +29,7 @@ def get_current_section(sections, last_section, current_song_time):
 
 
 def get_current_segment(segments, last_segment, current_song_time):
+    print("OLD CODE songState.get_current_segment, migrate over!")
     segment_changed = False
     for segment in segments:
         if segment["start"] <= current_song_time < segment["start"] + segment["duration"]:
@@ -46,8 +47,20 @@ def get_current_segment(segments, last_segment, current_song_time):
     else:
         # If we didn't find a segment, return the last segment
         current_segment = last_segment
-    return (current_segment, segment_changed)
+    return current_segment, segment_changed
 
+
+def get_current_segment(segments, current_song_time):
+    for segment in segments:
+        if segment["start"] <= current_song_time < segment["start"] + segment["duration"]:
+            return segment
+    return None
+
+def get_current_segment_index(segments, current_song_time):
+    for segment in segments:
+        if segment["start"] <= current_song_time < segment["start"] + segment["duration"]:
+            return segments.index(segment)
+    return None
 
 def get_current_tatum(tatums, last_tatum, current_song_time):
     tatum_changed = False
@@ -65,4 +78,4 @@ def get_current_tatum(tatums, last_tatum, current_song_time):
     else:
         # If we didn't find a tatum, return the last tatum
         current_tatum = last_tatum
-    return (current_tatum, tatum_changed)
+    return current_tatum, tatum_changed

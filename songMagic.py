@@ -7,7 +7,7 @@ from scipy.spatial.distance import cdist
 from collections import defaultdict
 
 import effects as ef
-from effects2 import fourfour
+from effects2 import fourfour, loudness_perlin
 #from audioChroma import run_som
 import lyrics_chroma as lc
 
@@ -147,13 +147,9 @@ class Song:
         # generate a ramdom number between 0 and 2
         pattern = random.randint(0, 2)
 
-        # # get song lyric info
-        # info = lc.get_color_data(self.song_id)
-        #
-        # # call it again to use the cached data. There is a weird bug where the 0x color gets used instead of (r,g,b)
-        # info = lc.get_color_data(self.song_id)
 
-        info = lc.get_color_data2(self.song_id, debug=False, fetch_only=False, replace=False)
+
+        info = lc.get_color_data2(self.song_id, debug=False, fetch_only=True, replace=False)
 
         if info.status == "not_found":
             print("song not found, failsafe mode")
@@ -167,13 +163,13 @@ class Song:
             print("Primary color:", self.primary_color)
             print("Accent color:", self.accent_color)
         #
-        for association in info['lyricAssociations']:
-            print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
-            self.constellation.add_effect(
-                ef.AnimatedRingEffect(self.constellation, float(association['startTime']) / 1000.0,
-                                      float(association['duration']) / 1000.0, 200, 400, association['colorRGB'],
-                                      4,
-                                      0, 0, 0, 2, False))
+        # for association in info['lyricAssociations']:
+        #     print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
+        #     self.constellation.add_effect(
+        #         ef.AnimatedRingEffect(self.constellation, float(association['startTime']) / 1000.0,
+        #                               float(association['duration']) / 1000.0, 200, 400, association['colorRGB'],
+        #                               4,
+        #                               0, 0, 0, 2, False))
 
 
         time_until_end_of_intro = self.sections[0]["start"] + self.sections[0]["duration"] - self.current_song_time
@@ -212,7 +208,6 @@ class Song:
 
         else:
             print("Intro detect fail")
-            print(time_until_end_of_intro)
             algo_fail = True
 
 
@@ -224,8 +219,10 @@ class Song:
             BASE_PERLIN_SIZE = 65
 
             # convert rgb to hue
-            hue1 = colorsys.rgb_to_hsv(self.primary_color[0] / 255, self.primary_color[1] / 255, self.primary_color[2] / 255)[0]
-            hue2 = colorsys.rgb_to_hsv(self.accent_color[0] / 255, self.accent_color[1] / 255, self.accent_color[2] / 255)[0]
+            # hue1 = colorsys.rgb_to_hsv(self.primary_color[0] / 255, self.primary_color[1] / 255, self.primary_color[2] / 255)[0]
+            # hue2 = colorsys.rgb_to_hsv(self.accent_color[0] / 255, self.accent_color[1] / 255, self.accent_color[2] / 255)[0]
+            hue1 = 0
+            hue2 = 1
 
 
 
@@ -235,16 +232,13 @@ class Song:
             # perlin_speed = abs(hue2 - hue1) * 0.0375 # good for a diff of 2/6
             # perlin_speed = abs(hue2 - hue1) * 0.01  # good for a diff of 4/6
             perlin_speed = abs(hue2 - hue1) * 0.00375  # good for a diff of 1
+            print("adding perlin noise effect")
+            self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
 
-            self.constellation.add_effect(
-                ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-                                     perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
             # self.constellation.add_effect(
             #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-            #                          perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.HUE_TO_WHITE, {'hue1':hue1, 'hue2':hue2}))
-            # self.constellation.add_effect(
-            #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time + time_until_end_of_intro, self.time_until_song_end, 1.0, 1,
-            #                          perlin_size, perlin_speed, (64, 64), None, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+            #                          perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+
 
 
 

@@ -311,12 +311,7 @@ def add_song_to_db(conn, song_id, debug=False):
         print_lyric_color_info(json_data)
 
 
-    song_info = json_str_to_save
-    if song_info:
-        c = conn.cursor()
-        c.execute("INSERT INTO mytable (unique_id, data, version) VALUES (?, ?, ?)",
-                  (song_id, song_info, "1.0"))
-        conn.commit()
+
 
 
 ColorDataStatus = namedtuple("ColorDataStatus", ["status", "data"])

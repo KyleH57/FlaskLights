@@ -611,6 +611,7 @@ class PerlinNoiseGenerator:
 
 
 # set hue2 to None for white mode
+# Use an empty list if beats is None
 class PerlinNoiseEffect(Effect):
     def __init__(self, constellation, start_time, duration, saturation, layer, scale, speed, noise_dim, beats, boost_beat_parity, color_mode, color_params=None):
         super().__init__()
@@ -680,14 +681,6 @@ class PerlinNoiseEffect(Effect):
         # It has nothing to do with color
         if self.color_mode == ColorMode.INTERPOLATE_HUES:
             hue1, hue2 = self.color_params['hue1'], self.color_params['hue2']
-
-            # this code is bad bc I may want a full rainbow or I may only want red and pink. Need to handle both of these cases
-            # if hue2 < hue1:
-            #     # handle wrap-around case
-            #     print('wrap-around case')
-            #     hue2 += 1
-            #     if hue < hue1:
-            #         hue += 1
 
             #print('hue old: ', hue)
             # interpolate between hue1 and hue2
