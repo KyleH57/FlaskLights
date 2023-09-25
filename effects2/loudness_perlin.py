@@ -107,7 +107,7 @@ class LoudnessPerlin(ef.Effect):
 
         current_segment_index = self.segments.index(curr_seg)
 
-        print(timbre_loudness_percentiles[current_segment_index])
+        # print(timbre_loudness_percentiles[current_segment_index])
 
 
 

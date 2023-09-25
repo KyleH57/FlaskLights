@@ -7,7 +7,7 @@ from scipy.spatial.distance import cdist
 from collections import defaultdict
 
 import effects as ef
-from effects2 import fourfour, loudness_perlin
+from effects2 import fourfour, loudness_perlin, gradient_test
 #from audioChroma import run_som
 import lyrics_chroma as lc
 
@@ -149,7 +149,7 @@ class Song:
 
 
 
-        info = lc.get_color_data2(self.song_id, debug=False, fetch_only=True, replace=False)
+        info = lc.get_color_data2(self.song_id, debug=True, fetch_only=False, replace=False)
 
         if info.status == "not_found":
             print("song not found, failsafe mode")
@@ -173,18 +173,10 @@ class Song:
 
 
         time_until_end_of_intro = self.sections[0]["start"] + self.sections[0]["duration"] - self.current_song_time
-        if self.danceability < 0.55 and self.valence < 0.5:
-            algo_fail = True
-            print("Boring song, using algo fail")
-        elif time_until_end_of_intro < 15 and not algo_fail: # algorithm worked, add loading effect with explosion at end
-
-
-            # info = lc.get_color_data(unique_id, debug=True)
-
-            # info = lc.get_color_data(unique_id, replace=True, debug=True)
-            # info = lc.get_color_data(unique_id, replace=True, debug=False)
-
-
+        # if self.danceability < 0.55 and self.valence < 0.5:
+        #     algo_fail = True
+        #     print("Boring song, using algo fail")
+        if time_until_end_of_intro < 15 and not algo_fail: # intro detected, add loading effect with explosion at end
 
             self.constellation.add_effect(
                 ef.BreakBarEffect(self.constellation, self.current_song_time, time_until_end_of_intro, 410,
@@ -202,19 +194,53 @@ class Song:
 
                 # self.constellation.add_effect(ef.RainbowWaveEffect(self.constellation, self.sections[1]["start"], self.total_duration - self.sections[1]["start"], 3000, 750, 1.0))
 
-            self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.time_until_song_end, self.beats, self.primary_color, self.accent_color, 1))
+            # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[1]["start"], self.time_until_song_end, self.beats, self.primary_color, self.accent_color, 1))
             # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[2]["start"], self.sections[2]["duration"], self.beats, self.section_color, self.accent_color, 1))
             # self.constellation.add_effect(fourfour.FourFour(self.constellation, self.sections[3]["start"], self.sections[3]["duration"], self.beats, self.section_color, self.accent_color, 1))
 
         else:
             print("Intro detect fail")
-            algo_fail = True
 
 
 
 
+        if not algo_fail:
+            BASE_PERLIN_SIZE = 65
 
-        if algo_fail: #algo failed, default to perlin noise
+
+
+            self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, 0, 120, self.primary_color, self.accent_color, 1))
+            # self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, 0, 120, (0, 255, 0), (0, 0, 0), 1))
+
+
+            # in size
+            # in hue diff
+            # out speed
+
+            diff = abs(hue2 - hue1)
+            print("hue diff:", diff)
+
+            perlin_size = BASE_PERLIN_SIZE * abs(hue2 - hue1)
+
+
+
+            # Use if statements to determine the multiplier for perlin_speed based on the difference
+            if diff <= 1 / 6:
+                multiplier = 0.1
+            elif diff <= 2 / 6:
+                multiplier = 0.0375
+            elif diff <= 4 / 6:
+                multiplier = 0.01
+            else:  # diff is between 4/6 and 1
+                multiplier = 0.00375
+
+            # Calculate perlin_speed
+            perlin_speed = diff * multiplier
+
+            # print("adding perlin noise effect")
+            # self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+
+        elif algo_fail: #algo failed, default to perlin noise
 
             BASE_PERLIN_SIZE = 65
 

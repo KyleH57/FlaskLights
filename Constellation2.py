@@ -41,14 +41,17 @@ class WS2812LED:
         self.yCoord_centroid = None
 
         self.color = [0, 0, 0]
-        # self.brightness = 0
 
-    # string representation of the LED
     def __str__(self):
-        return "LED at " + str(self.xCoord) + ", " + str(self.yCoord) + " centroid at " + str(
-            self.xCoord_centroid) + ", " + str(self.yCoord_centroid) + " with color " + str(self.color)
+        return ("LED at " + str(self.xCoord) + ", " + str(self.yCoord) +
+                " centroid at " + str(self.xCoord_centroid) + ", " +
+                str(self.yCoord_centroid) + " with color " + str(self.color))
 
     def set_color(self, color):
+        # Check if each color value is within [0, 255]
+        if not (0 <= color[0] <= 255 and 0 <= color[1] <= 255 and 0 <= color[2] <= 255):
+            print(color)
+            raise ValueError("Color values must be in the range [0, 255]")
         self.color = color
 
     def get_color(self):
@@ -57,6 +60,7 @@ class WS2812LED:
     def set_centroid(self, x, y):
         self.xCoord_centroid = x
         self.yCoord_centroid = y
+
 
 
 class Node:
@@ -165,6 +169,13 @@ class Constellation:
         self.centroid_x = None
         self.centroid_y = None
 
+        # initialize min and max values
+        self.min_x = float('inf') # rightmost led in the centroid coordinate system
+        self.max_x = float('-inf')
+        self.min_y = float('inf')
+        self.max_y = float('-inf')
+
+
         self.segments = []
         self.nodes = []
         self.leds = []  # WS2812LED objects
@@ -188,6 +199,16 @@ class Constellation:
         for led in self.leds:
             led.xCoord_centroid = led.xCoord - self.centroid_x
             led.yCoord_centroid = led.yCoord - self.centroid_y
+
+            # update min and max x and y values
+            if led.xCoord_centroid < self.min_x:
+                self.min_x = led.xCoord_centroid
+            if led.xCoord_centroid > self.max_x:
+                self.max_x = led.xCoord_centroid
+            if led.yCoord_centroid < self.min_y:
+                self.min_y = led.yCoord_centroid
+            if led.yCoord_centroid > self.max_y:
+                self.max_y = led.yCoord_centroid
 
         # populate the hexagons list
         stuff5623 = self.find_hexagons()
