@@ -149,9 +149,11 @@ class Song:
 
 
 
+
         info = lc.get_color_data2(self.song_id, debug=True, fetch_only=False, replace=False)
 
-        if info.status == "not_found":
+
+        if info.status == "not_found" or info.status == "error":
             print("song not found, failsafe mode")
             algo_fail = True
         elif info.status == "success":
@@ -209,13 +211,14 @@ class Song:
 
 
 
-            self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, 0, 120, self.primary_color, self.accent_color, 1))
-            # self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, 0, 120, (0, 255, 0), (0, 0, 0), 1))
-
+            self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, 0, self.time_until_song_end, self.primary_color, self.accent_color, 1))
+            print("time until song end:", self.time_until_song_end)
 
             # in size
             # in hue diff
             # out speed
+            hue1 = 0
+            hue2 = 1
 
             diff = abs(hue2 - hue1)
             print("hue diff:", diff)

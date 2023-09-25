@@ -250,7 +250,16 @@ def fetch_song_from_db(conn, song_id):
     return c.fetchone()
 
 
+
 def add_song_to_db(conn, song_id, debug=False):
+    """
+    This function is called when a song is not found in the database.
+    It makes an API call to GPT-4 and saves the result to the database.
+    :param conn:
+    :param song_id:
+    :param debug:
+    :return:
+    """
     c = conn.cursor()
 
     sp = Spotify(os.environ["SPOTIFY_COOKIE"])
@@ -348,7 +357,10 @@ def get_color_data2(song_id, replace=False, debug=False, fetch_only=True):
     else:
         # If 'fetch_only' is False, add the song data to the database
         if not fetch_only:
-            add_song_to_db(conn, song_id, debug=debug)
+            try:
+                add_song_to_db(conn, song_id, debug=debug)
+            except ValueError as e:
+                return ColorDataStatus(status="error", data=str(e))
         conn.close()  # Close the database connection
 
         # Differentiate between "not found" and "added" based on 'fetch_only' flag
