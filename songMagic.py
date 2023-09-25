@@ -150,7 +150,7 @@ class Song:
 
 
 
-        info = lc.get_color_data2(self.song_id, debug=True, fetch_only=False, replace=False)
+        info = lc.get_color_data2(self.song_id, debug=False, fetch_only=False, replace=False)
 
 
         if info.status == "not_found" or info.status == "error":
@@ -212,6 +212,10 @@ class Song:
 
 
             self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, 0, self.time_until_song_end, self.primary_color, self.accent_color, 1))
+            # self.constellation.add_effect(
+            #     ef.FillAllEffect(self.constellation, 0, self.time_until_song_end, (255, 26, 141), 1))
+            # self.constellation.add_effect(
+            #     ef.FillAllEffect(self.constellation, 0, self.time_until_song_end, (255, 0, 128), 1))
             print("time until song end:", self.time_until_song_end)
 
             # in size

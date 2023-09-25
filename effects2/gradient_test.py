@@ -1,4 +1,22 @@
+import colorsys
+
 import effects as ef
+
+
+def adjust_saturation(color):
+    min_saturation = 0.9
+    # Normalize RGB values to [0, 1]
+    r, g, b = color[0] / 255.0, color[1] / 255.0, color[2] / 255.0
+    # Convert RGB to HSV
+    h, s, v = colorsys.rgb_to_hsv(r, g, b)
+    # If saturation is below min_saturation, set it to new_saturation
+    if s < min_saturation:
+        s = min_saturation
+    # Convert back to RGB
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    # Rescale RGB values to [0, 255]
+    return int(r * 255), int(g * 255), int(b * 255)
+
 
 class GradientEffect(ef.Effect):
     def __init__(self, constellation, start_time, duration, color1, color2, layer):
@@ -7,14 +25,11 @@ class GradientEffect(ef.Effect):
         self.start_time = start_time
         self.duration = duration
         self.end_time = start_time + duration
-        self.color1 = color1
-        self.color2 = color2
+        self.color1 = adjust_saturation(color1)
+        self.color2 = adjust_saturation(color2)
         self.layer = layer
-
         self.min_x = constellation.min_x
         self.max_x = constellation.max_x
-
-
 
     def run(self, current_song_time):
         if not self.is_done(current_song_time) and current_song_time >= self.start_time:
