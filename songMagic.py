@@ -184,16 +184,17 @@ class Song:
         #     print("Boring song, using algo fail")
         if time_until_end_of_intro < 15 and not algo_fail: # intro detected, add loading effect with explosion at end
 
-            self.constellation.add_effect(
-                ef.BreakBarEffect(self.constellation, self.current_song_time, time_until_end_of_intro, 410,
-                                  (255, 255, 255)))
-
-
-
-
-            self.constellation.add_effect(
-                ef.AnimatedRingEffect(self.constellation, self.sections[1]["start"], 1, 200, 400, (255, 255, 255), 1200,
-                                      1200 * -1.618, 0, 0, 2, False))
+            # self.constellation.add_effect(
+            #     ef.BreakBarEffect(self.constellation, self.current_song_time, time_until_end_of_intro, 410,
+            #                       (255, 255, 255)))
+            #
+            #
+            #
+            #
+            # self.constellation.add_effect(
+            #     ef.AnimatedRingEffect(self.constellation, self.sections[1]["start"], 1, 200, 400, (255, 255, 255), 1200,
+            #                           1200 * -1.618, 0, 0, 2, False))
+            pass
 
 
 
@@ -230,7 +231,6 @@ class Song:
             hue2 = 1
 
             diff = abs(hue2 - hue1)
-            print("hue diff:", diff)
 
             perlin_size = BASE_PERLIN_SIZE * abs(hue2 - hue1)
 
@@ -253,9 +253,9 @@ class Song:
             # self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
             #
 
-            self.constellation.add_effect(
-                ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-                                     perlin_size, perlin_speed * 3, (64, 64), self.beats, 'odd', ef.ColorMode.HUE_TO_WHITE, {'hue1':self.primary_hue, 'hue2':0}))
+            # self.constellation.add_effect(
+            #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
+            #                          perlin_size, perlin_speed * 3, (64, 64), self.beats, 'odd', ef.ColorMode.HUE_TO_WHITE, {'hue1':self.primary_hue, 'hue2':0}))
 
         elif algo_fail: #algo failed, default to perlin noise
 
@@ -275,8 +275,8 @@ class Song:
             # perlin_speed = abs(hue2 - hue1) * 0.0375 # good for a diff of 2/6
             # perlin_speed = abs(hue2 - hue1) * 0.01  # good for a diff of 4/6
             perlin_speed = abs(hue2 - hue1) * 0.00375  # good for a diff of 1
-            print("adding perlin noise effect")
-            self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+            # print("adding perlin noise effect")
+            #self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
 
 
 

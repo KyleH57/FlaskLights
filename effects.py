@@ -10,6 +10,13 @@ import imageio.v2 as imageio
 import colorsys
 
 class Effect:
+    def __init__(self, start_time, duration):
+        if start_time is None or duration is None:
+            raise NotImplementedError("All child classes must provide start_time and duration")
+        self.start_time = start_time
+        self.duration = duration
+        self.end_time = start_time + duration
+
     def run(self, current_song_data):
         raise NotImplementedError("Subclasses must implement this method")
 
@@ -40,243 +47,243 @@ class FillAllEffect(Effect):
             return True
 
 
-class DebugCounterEffect:
-    def __init__(self, constellation, number, start_index, start_time, duration, color, layer):
-        super().__init__()
-        self.constellation = constellation
-        self.number = number
-        self.start_index = start_index
-        self.start_time = start_time
-        self.duration = duration
-        self.end_time = start_time + duration
-        self.color = color
-        self.layer = layer
-
-    def run(self, current_time):
-        if not self.is_done(current_time):
-            binary_representation = bin(self.number)[2:]  # Remove the '0b' prefix
-            binary_length = len(binary_representation)
-
-            for i, bit in enumerate(reversed(binary_representation)):
-                led_position = self.start_index + i
-                if bit == '1':
-                    self.constellation.set_single_led(led_position,
-                                                      self.color)  # Turn the LED on with the specified color
-                else:
-                    self.constellation.set_single_led(led_position, (0, 0, 0))  # Turn the LED off
-
-            return True
-        else:
-            return False
-
-    def is_done(self, current_time):
-        if current_time >= self.end_time:
-            return True
-        else:
-            return False
-
-
-class FillHexagonEffectOld(Effect):
-    def __init__(self, constellation, start_time, duration, color, hexagon_index):
-        super().__init__()
-        self.constellation = constellation
-        self.start_time = start_time
-        self.duration = duration
-        self.end_time = start_time + duration
-        self.color = color
-        # self.hexagon_index = hexagon_index
-        self.hexagon = self.constellation.find_hexagons()[hexagon_index]
-        self.hex_segments = self.constellation.find_hex_segments(self.hexagon)
-        self.led_indices = []
-
-        # print(self.hexagon)
-
-        for i in range(len(self.hex_segments)):
-            self.led_indices.append(self.hex_segments[i].start_index)
-
-        # print(self.led_indices)
-
-    def run(self, current_song_data):  # returns false if effect is done, true if it is playing
-
-        if not self.is_done(current_song_data):
-            for i in self.led_indices:
-                for j in range(self.constellation.num_leds_segment):
-                    self.constellation.set_single_led(i + j, self.color)
-            return True
-        else:
-            return False
-
-    def is_done(self, current_song_data):
-        if current_song_data[0] >= self.end_time:
-            return True
-
-
-
-
-
-# class SCurve:  # dead code
-#     def __init__(self, start_time, duration, acceleration_time):
-#         if acceleration_time > duration / 2:
-#             raise ValueError("Acceleration time must be less than or equal to half of the total duration.")
-#
+# class DebugCounterEffect:
+#     def __init__(self, constellation, number, start_index, start_time, duration, color, layer):
+#         super().__init__()
+#         self.constellation = constellation
+#         self.number = number
+#         self.start_index = start_index
 #         self.start_time = start_time
 #         self.duration = duration
-#         self.acceleration_time = acceleration_time
-#         self.acceleration = 1 / (2 * acceleration_time / duration)  # 1 represents the total change in position.
-#         self.final_time = start_time + duration
+#         self.end_time = start_time + duration
+#         self.color = color
+#         self.layer = layer
 #
-#     def update(self, current_time):
-#         if current_time < self.start_time:
-#             return 0
-#         elif current_time > self.final_time:
-#             return 1
+#     def run(self, current_time):
+#         if not self.is_done(current_time):
+#             binary_representation = bin(self.number)[2:]  # Remove the '0b' prefix
+#             binary_length = len(binary_representation)
+#
+#             for i, bit in enumerate(reversed(binary_representation)):
+#                 led_position = self.start_index + i
+#                 if bit == '1':
+#                     self.constellation.set_single_led(led_position,
+#                                                       self.color)  # Turn the LED on with the specified color
+#                 else:
+#                     self.constellation.set_single_led(led_position, (0, 0, 0))  # Turn the LED off
+#
+#             return True
 #         else:
-#             t = (current_time - self.start_time) / self.duration
-#             if t < self.acceleration_time / self.duration:  # Acceleration phase
-#                 return 0.5 * self.acceleration * t ** 2
-#             elif t < 1 - self.acceleration_time / self.duration:  # Uniform motion phase
-#                 return t
-#             else:  # Deceleration phase
-#                 dt = 1 - t
-#                 return 1 - 0.5 * self.acceleration * dt ** 2
-
-
-class FillHexagonEffect(Effect):
-    def __init__(self, constellation, start_time, duration, color, hexagon_index, layer=1, fade_in_time=0,
-                 fade_out_time=0):
-        super().__init__()
-        self.constellation = constellation
-        self.start_time = start_time
-        self.duration = duration
-        self.end_time = start_time + duration
-        self.color = color
-        self.layer = layer
-        self.fade_in_time = fade_in_time
-        self.fade_out_time = fade_out_time
-        self.hexagon = self.constellation.find_hexagons()[hexagon_index]
-        self.hex_segments = self.constellation.find_hex_segments(self.hexagon)
-        self.led_indices = []
-
-        for i in range(len(self.hex_segments)):
-            self.led_indices.append(self.hex_segments[i].start_index)
-
-    def run(self, current_song_time):
-        if current_song_time < self.start_time or self.is_done(current_song_time):
-            return False
-
-        elapsed_time = current_song_time - self.start_time
-        remaining_time = self.end_time - current_song_time
-
-        if elapsed_time < self.fade_in_time:
-            progress = elapsed_time / self.fade_in_time
-        elif remaining_time <= self.fade_out_time:
-            progress = remaining_time / self.fade_out_time
-        else:
-            progress = 1
-
-        current_color = tuple(int(progress * c) for c in self.color)
-
-        for i in self.led_indices:
-            for j in range(self.constellation.num_leds_segment):
-                self.constellation.set_single_led(i + j, current_color)
-        return True
-
-    def is_done(self, current_song_time):
-        if current_song_time >= self.end_time:
-            return True
-
-
-class LightItUp(Effect):
-    def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time,
-                 layer=1):
-        super().__init__()
-        self.constellation = constellation
-        self.start_time = start_time
-        self.duration = duration
-        self.end_time = start_time + duration
-        self.color = color
-        self.layer = layer
-        self.fade_in_time = fade_in_time
-        self.fade_out_time = fade_out_time
-        self.pattern_number = pattern_number
-
-        self.sub_effects = []
-
-        end_time = start_time + duration
-
-        hex_duration = 0.6
-
-        hex_start_time = start_time
-
-        self.stagger = stagger
-
-        if pattern_number == 0:
-            hex_indices = [0, 4, 2, 5, 1]
-        elif pattern_number == 1:
-            hex_indices = [9, 8, 10, 11, 12]
-
-        for i, index in enumerate(hex_indices):
-            start_time = hex_start_time + i * stagger
-            self.sub_effects.append(
-                FillHexagonEffect(constellation, start_time, hex_duration, color, index, layer, fade_in_time,
-                                  fade_out_time))
-
-    def run(self, current_song_time):
-        if not self.is_done(current_song_time) and current_song_time >= self.start_time:
-            for effect in self.sub_effects:
-                effect.run(current_song_time)
-            return True
-
-    def is_done(self, current_song_time):
-        if current_song_time >= self.end_time:
-            return True
-
-
-class BeachBall(Effect):
-    def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time,
-                 layer=1):
-        super().__init__()
-        self.constellation = constellation
-        self.start_time = start_time
-        self.duration = duration
-        self.end_time = start_time + duration
-        self.color = color
-        self.layer = layer
-        self.fade_in_time = fade_in_time
-        self.fade_out_time = fade_out_time
-        self.pattern_number = pattern_number
-
-        self.sub_effects = []
-
-        hex_duration = 1.5
-
-        hex_start_time = start_time
-
-        self.stagger = stagger
-
-        if color is None:
-            ball_colors = [[255, 0, 0], [255, 255, 0], [0, 255, 0], [0, 255, 255], [0, 0, 255], [255, 0, 255]]
-
-        if pattern_number == 0:
-            hex_indices = [6, 11, 8, 3, 4, 5]
-        elif pattern_number == 1:
-            hex_indices = [6, 5, 4, 3, 8, 11]
-
-        for i, index in enumerate(hex_indices):
-            start_time = hex_start_time + i * stagger
-            self.sub_effects.append(
-                FillHexagonEffect(constellation, start_time, hex_duration, ball_colors[i], index, layer, fade_in_time,
-                                  fade_out_time))
-
-    def run(self, current_song_time):
-        if not self.is_done(current_song_time) and current_song_time >= self.start_time:
-            for effect in self.sub_effects:
-                effect.run(current_song_time)
-            return True
-
-    def is_done(self, current_song_time):
-        if current_song_time >= self.end_time:
-            return True
+#             return False
+#
+#     def is_done(self, current_time):
+#         if current_time >= self.end_time:
+#             return True
+#         else:
+#             return False
+#
+#
+# class FillHexagonEffectOld(Effect):
+#     def __init__(self, constellation, start_time, duration, color, hexagon_index):
+#         super().__init__()
+#         self.constellation = constellation
+#         self.start_time = start_time
+#         self.duration = duration
+#         self.end_time = start_time + duration
+#         self.color = color
+#         # self.hexagon_index = hexagon_index
+#         self.hexagon = self.constellation.find_hexagons()[hexagon_index]
+#         self.hex_segments = self.constellation.find_hex_segments(self.hexagon)
+#         self.led_indices = []
+#
+#         # print(self.hexagon)
+#
+#         for i in range(len(self.hex_segments)):
+#             self.led_indices.append(self.hex_segments[i].start_index)
+#
+#         # print(self.led_indices)
+#
+#     def run(self, current_song_data):  # returns false if effect is done, true if it is playing
+#
+#         if not self.is_done(current_song_data):
+#             for i in self.led_indices:
+#                 for j in range(self.constellation.num_leds_segment):
+#                     self.constellation.set_single_led(i + j, self.color)
+#             return True
+#         else:
+#             return False
+#
+#     def is_done(self, current_song_data):
+#         if current_song_data[0] >= self.end_time:
+#             return True
+#
+#
+#
+#
+#
+# # class SCurve:  # dead code
+# #     def __init__(self, start_time, duration, acceleration_time):
+# #         if acceleration_time > duration / 2:
+# #             raise ValueError("Acceleration time must be less than or equal to half of the total duration.")
+# #
+# #         self.start_time = start_time
+# #         self.duration = duration
+# #         self.acceleration_time = acceleration_time
+# #         self.acceleration = 1 / (2 * acceleration_time / duration)  # 1 represents the total change in position.
+# #         self.final_time = start_time + duration
+# #
+# #     def update(self, current_time):
+# #         if current_time < self.start_time:
+# #             return 0
+# #         elif current_time > self.final_time:
+# #             return 1
+# #         else:
+# #             t = (current_time - self.start_time) / self.duration
+# #             if t < self.acceleration_time / self.duration:  # Acceleration phase
+# #                 return 0.5 * self.acceleration * t ** 2
+# #             elif t < 1 - self.acceleration_time / self.duration:  # Uniform motion phase
+# #                 return t
+# #             else:  # Deceleration phase
+# #                 dt = 1 - t
+# #                 return 1 - 0.5 * self.acceleration * dt ** 2
+#
+#
+# class FillHexagonEffect(Effect):
+#     def __init__(self, constellation, start_time, duration, color, hexagon_index, layer=1, fade_in_time=0,
+#                  fade_out_time=0):
+#         super().__init__()
+#         self.constellation = constellation
+#         self.start_time = start_time
+#         self.duration = duration
+#         self.end_time = start_time + duration
+#         self.color = color
+#         self.layer = layer
+#         self.fade_in_time = fade_in_time
+#         self.fade_out_time = fade_out_time
+#         self.hexagon = self.constellation.find_hexagons()[hexagon_index]
+#         self.hex_segments = self.constellation.find_hex_segments(self.hexagon)
+#         self.led_indices = []
+#
+#         for i in range(len(self.hex_segments)):
+#             self.led_indices.append(self.hex_segments[i].start_index)
+#
+#     def run(self, current_song_time):
+#         if current_song_time < self.start_time or self.is_done(current_song_time):
+#             return False
+#
+#         elapsed_time = current_song_time - self.start_time
+#         remaining_time = self.end_time - current_song_time
+#
+#         if elapsed_time < self.fade_in_time:
+#             progress = elapsed_time / self.fade_in_time
+#         elif remaining_time <= self.fade_out_time:
+#             progress = remaining_time / self.fade_out_time
+#         else:
+#             progress = 1
+#
+#         current_color = tuple(int(progress * c) for c in self.color)
+#
+#         for i in self.led_indices:
+#             for j in range(self.constellation.num_leds_segment):
+#                 self.constellation.set_single_led(i + j, current_color)
+#         return True
+#
+#     def is_done(self, current_song_time):
+#         if current_song_time >= self.end_time:
+#             return True
+#
+#
+# class LightItUp(Effect):
+#     def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time,
+#                  layer=1):
+#         super().__init__()
+#         self.constellation = constellation
+#         self.start_time = start_time
+#         self.duration = duration
+#         self.end_time = start_time + duration
+#         self.color = color
+#         self.layer = layer
+#         self.fade_in_time = fade_in_time
+#         self.fade_out_time = fade_out_time
+#         self.pattern_number = pattern_number
+#
+#         self.sub_effects = []
+#
+#         end_time = start_time + duration
+#
+#         hex_duration = 0.6
+#
+#         hex_start_time = start_time
+#
+#         self.stagger = stagger
+#
+#         if pattern_number == 0:
+#             hex_indices = [0, 4, 2, 5, 1]
+#         elif pattern_number == 1:
+#             hex_indices = [9, 8, 10, 11, 12]
+#
+#         for i, index in enumerate(hex_indices):
+#             start_time = hex_start_time + i * stagger
+#             self.sub_effects.append(
+#                 FillHexagonEffect(constellation, start_time, hex_duration, color, index, layer, fade_in_time,
+#                                   fade_out_time))
+#
+#     def run(self, current_song_time):
+#         if not self.is_done(current_song_time) and current_song_time >= self.start_time:
+#             for effect in self.sub_effects:
+#                 effect.run(current_song_time)
+#             return True
+#
+#     def is_done(self, current_song_time):
+#         if current_song_time >= self.end_time:
+#             return True
+#
+#
+# class BeachBall(Effect):
+#     def __init__(self, constellation, start_time, duration, color, pattern_number, stagger, fade_in_time, fade_out_time,
+#                  layer=1):
+#         super().__init__()
+#         self.constellation = constellation
+#         self.start_time = start_time
+#         self.duration = duration
+#         self.end_time = start_time + duration
+#         self.color = color
+#         self.layer = layer
+#         self.fade_in_time = fade_in_time
+#         self.fade_out_time = fade_out_time
+#         self.pattern_number = pattern_number
+#
+#         self.sub_effects = []
+#
+#         hex_duration = 1.5
+#
+#         hex_start_time = start_time
+#
+#         self.stagger = stagger
+#
+#         if color is None:
+#             ball_colors = [[255, 0, 0], [255, 255, 0], [0, 255, 0], [0, 255, 255], [0, 0, 255], [255, 0, 255]]
+#
+#         if pattern_number == 0:
+#             hex_indices = [6, 11, 8, 3, 4, 5]
+#         elif pattern_number == 1:
+#             hex_indices = [6, 5, 4, 3, 8, 11]
+#
+#         for i, index in enumerate(hex_indices):
+#             start_time = hex_start_time + i * stagger
+#             self.sub_effects.append(
+#                 FillHexagonEffect(constellation, start_time, hex_duration, ball_colors[i], index, layer, fade_in_time,
+#                                   fade_out_time))
+#
+#     def run(self, current_song_time):
+#         if not self.is_done(current_song_time) and current_song_time >= self.start_time:
+#             for effect in self.sub_effects:
+#                 effect.run(current_song_time)
+#             return True
+#
+#     def is_done(self, current_song_time):
+#         if current_song_time >= self.end_time:
+#             return True
 
 
 #
@@ -351,7 +358,7 @@ class BeachBall(Effect):
 #
 class RainbowWaveEffect(Effect):
     def __init__(self, constellation, start_time, duration, wave_length, speed, saturation, layer=0):
-        super().__init__()
+        super().__init__(start_time, duration)
         self.constellation = constellation
         self.start_time = start_time
         self.duration = duration
@@ -614,7 +621,7 @@ class PerlinNoiseGenerator:
 # Use an empty list if beats is None
 class PerlinNoiseEffect(Effect):
     def __init__(self, constellation, start_time, duration, saturation, layer, scale, speed, noise_dim, beats, boost_beat_parity, color_mode, color_params=None):
-        super().__init__()
+        super().__init__(start_time, duration)
         self.constellation = constellation
         self.start_time = start_time
         self.duration = duration

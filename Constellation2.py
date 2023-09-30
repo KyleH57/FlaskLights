@@ -532,18 +532,16 @@ class Constellation:
         # write data to pixels
         self.pixels.show()
 
-    def run_effects2(self, song_object):
+    def run_effects2(self, song_object, debug=False):
 
         self.clear()
+
+        count = 0  # initialize a counter variable
 
         # check if any effects are done and remove them
         for effect in self.effects:
             if effect.is_done(song_object.current_song_time):
                 self.effects.remove(effect)
-
-        # # run all remaining effects
-        # for effect in self.effects:
-        #     effect.run(song_object.current_song_time)
 
         effect_layers = {}
         max_layer = -1  # initialize max layer number to -1
@@ -559,7 +557,12 @@ class Constellation:
         for layer in range(max_layer + 1):
             if layer in effect_layers:
                 for effect in effect_layers[layer]:
-                    effect.run(song_object.current_song_time)
+                    if effect.start_time <= song_object.current_song_time <= effect.end_time:
+                        effect.run(song_object.current_song_time)
+                        count += 1  # increment the counter each time an effect is run
+
+                        if debug:
+                            print(effect.color_params, effect.start_time, effect.end_time, count, song_object.current_song_time)
 
         # copy data from leds to pixels
         for i in range(self.num_leds):
@@ -567,3 +570,4 @@ class Constellation:
 
         # write data to pixels
         self.pixels.show()
+

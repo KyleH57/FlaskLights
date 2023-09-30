@@ -31,9 +31,11 @@ from audioChroma import *
 # from songMagic import SongLookup, Song
 from Constellation2 import Constellation
 from effects import *
+from effects2 import rainbow_wave_2
 from songState import *
 
 import songMagic as sm
+import show_generator as sg
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
@@ -114,7 +116,7 @@ def index():
         if currently_playing_data["progress_ms"] == last_currently_playing_data_progress_ms:
             print("Paused")
             parent_conn.send([0, 0, 0, 0])
-            return render_template('index.html', song="Paused", artist="Paused", refresh_interval=9999)
+            return render_template('paused.html')
         else:
             last_currently_playing_data_progress_ms = currently_playing_data["progress_ms"]
 
@@ -485,8 +487,15 @@ def worker(conn, frequency=20.0):
 
                 my_constellation.remove_all_effects()
 
+                # create a song object
+                song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id,
+                                   song_duration, sections, bars, beats, segments,
+                                   tatums, analysis_data["track"]["time_signature"], features_data)
 
-                song_obj = sm.Song(my_constellation, local_timestamp, current_song_timeAPI, song_name, song_id, song_duration, sections, bars, beats, segments, tatums, analysis_data["track"]["time_signature"], features_data)
+                # generate a show
+                sg.generate_show(my_constellation, song_obj)
+
+
 
         # end of do once
 
@@ -502,7 +511,7 @@ def worker(conn, frequency=20.0):
 
             song_obj.add_effects_while_running()
 
-            my_constellation.run_effects2(song_obj)
+            my_constellation.run_effects2(song_obj, debug=False)
 
 
         else: # display a generic rainbow wave if no song is playing
@@ -512,11 +521,9 @@ def worker(conn, frequency=20.0):
                 # remove all effects
                 my_constellation.remove_all_effects()
 
-                my_constellation.add_effect(RainbowWaveEffect(my_constellation, time.time(), 72000, 1500, 750, 1.0))
+                my_constellation.add_effect(rainbow_wave_2.RainbowWaveEffect2(my_constellation, time.time(), 72000, 1500, 750, 1.0))
                 idle_rainbow_playing = True
-            #
-            # current_song_data = []
-            # current_song_data.append(time.time())
+
             my_constellation.run_effects(time.time())
 
 

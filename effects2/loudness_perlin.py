@@ -47,7 +47,7 @@ class PerlinNoiseGenerator:
 # Use an empty list if beats is None
 class LoudnessPerlin(ef.Effect):
     def __init__(self, constellation, start_time, duration, saturation, layer, scale, speed, noise_dim, segments, boost_beat_parity, color_mode, color_params=None):
-        super().__init__()
+        super().__init__(start_time, duration)
         self.constellation = constellation
         self.start_time = start_time
         self.duration = duration
