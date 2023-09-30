@@ -9,6 +9,8 @@ from flask import Flask, request, redirect, session, render_template
 
 import json
 import multiprocessing as mp
+import threading
+
 import time
 import datetime
 
@@ -36,6 +38,8 @@ from songState import *
 
 import songMagic as sm
 import show_generator as sg
+
+import lyrics_chroma as lc
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
@@ -108,12 +112,16 @@ def index():
 
 
     if resp.status_code == 200:
+        player_paused = False
+        if resp is None:
+            player_paused = True
+
         song_id = resp.json()["item"]["id"]
         siteTextData = resp.json()["item"]["name"] + " by " + resp.json()["item"]["artists"][0][
             "name"] + " is currently playing."
 
         currently_playing_data = resp.json()
-        if currently_playing_data["progress_ms"] == last_currently_playing_data_progress_ms:
+        if currently_playing_data["progress_ms"] == last_currently_playing_data_progress_ms or player_paused:
             print("Paused")
             parent_conn.send([0, 0, 0, 0])
             return render_template('paused.html')
@@ -156,6 +164,10 @@ def index():
 
             print(f"Next song ID: {next_song_id}")
             print(f"Next song name: {next_song_name}")
+
+            database_thread = threading.Thread(target=add_next_song_to_db, args=(next_song_id,))
+            database_thread.start()
+
         else:
             print("The queue is empty.")
 
@@ -545,7 +557,6 @@ def progress_bar_2(section_progress, pixels, color, bg_color, n, blur_size=3):
 
 
 
-
 def wait_for_next_iteration_no_sleep(frequency, start_time):
     iteration_time = 1.0 / frequency
 
@@ -559,6 +570,17 @@ def wait_for_next_iteration_no_sleep(frequency, start_time):
         if time.perf_counter() - start_time >= iteration_time:
             return
 
+
+def add_next_song_to_db(song_id):
+    print("Adding next song to db")
+    info = lc.get_color_data2(song_id, fetch_only=False, debug=False)
+    if info.status == "error":
+        print("database in use")
+    elif info.status == "success":
+        print("added to database")
+        print(info)
+    else:
+        print(info.status)
 
 if __name__ == "__main__":
     print(SPOTIFY_REDIRECT_URI)

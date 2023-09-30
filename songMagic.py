@@ -152,7 +152,7 @@ class Song:
 
 
 
-        info = lc.get_color_data2(self.song_id, debug=False, fetch_only=False, replace=False)
+        info = lc.get_color_data2(self.song_id, debug=False, fetch_only=True, replace=False)
 
 
         if info.status == "not_found" or info.status == "error":

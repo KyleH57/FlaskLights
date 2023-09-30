@@ -66,7 +66,15 @@ def print_raw_lyrics(unique_id):
     print(data)
 
 
-def make_gpt4_api_call(data):
+def make_gpt4_api_call(data, debug=False):
+    """
+    Makes a api call to GPT-4
+    :param data: Lyrics string
+    :param debug:
+    :return:
+    """
+    if debug:
+        print("Making GPT API call")
     openai.api_key = os.environ["OPENAI_API_KEY"]
 
     PROMPT = "Primary Color Association with a Song:\n\nRead through the lyrics of the song provided in the next " \
@@ -113,6 +121,9 @@ def make_gpt4_api_call(data):
         presence_penalty=0
     )
 
+    if debug:
+        print("GPT API call complete. Response:")
+
     if response['choices'][0]['finish_reason'] == 'length':
         print("API call failed. Response was too long.")
         return None
@@ -124,6 +135,11 @@ def make_gpt4_api_call(data):
 
 
 def connect_to_db():
+    """
+    10 second timeout
+
+    :return:
+    """
     try:
         conn = sqlite3.connect('mydatabase.db', timeout=10)
         conn.execute("PRAGMA journal_mode=WAL")
@@ -170,7 +186,7 @@ def add_song_to_db(conn, song_id, debug=False):
         print("ERROR: Song may not have lyrics available.")
         return None
 
-    response = make_gpt4_api_call(lyric_data)
+    response = make_gpt4_api_call(lyric_data, debug=debug)
 
     if response is None:
         print("ERROR: GPT response is None.")
@@ -232,6 +248,18 @@ ColorDataStatus = namedtuple("ColorDataStatus", ["status", "data"])
 
 
 def get_color_data2(song_id, replace=False, debug=False, fetch_only=True):
+    """
+    This is called when a song needs to be fetched from the database.
+    If the song is not found in the database, it will be added.
+    If the database is in use, it will wait up until the timeout.
+    If the timeout is reached, it will return status "error".
+    Returns success if song is in the database
+    :param song_id:
+    :param replace:
+    :param debug:
+    :param fetch_only:
+    :return:
+    """
     if debug:
         print("Fetching color data for song ID:", song_id)
     # Initialize the database connection
