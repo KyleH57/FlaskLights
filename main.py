@@ -377,7 +377,7 @@ def worker(conn, frequency=20.0):
                   "120, -180r, 60, 120,-180, -120r," \
                   "120, -180r, 60, 0, -60, -120"
 
-    MAX_BRIGHTNESS = 0.5
+    MAX_BRIGHTNESS = 0.4
 
     NUM_LEDS_SEGMENT = 15
     SEGMENT_LED_SPACING = 15

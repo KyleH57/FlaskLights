@@ -156,18 +156,24 @@ def add_song_to_db(conn, song_id, debug=False):
     :param debug:
     :return:
     """
-    c = conn.cursor()
+    try:
 
-    sp = Spotify(os.environ["SPOTIFY_COOKIE"])
-    lyric_data = sp.get_lyrics(song_id)
+
+        sp = Spotify(os.environ["SPOTIFY_COOKIE"])
+        lyric_data = sp.get_lyrics(song_id)
+    except Exception as e:
+        print("ERROR: Spotify API call failed.")
+        print(e)
+        return None
 
     if lyric_data is None:
-        print("ERROR: lyric_data is None.")
+        print("ERROR: Song may not have lyrics available.")
         return None
 
     response = make_gpt4_api_call(lyric_data)
 
     if response is None:
+        print("ERROR: GPT response is None.")
         return None
 
     json_str = response['choices'][0]['message']['content']
@@ -182,6 +188,9 @@ def add_song_to_db(conn, song_id, debug=False):
         print("json_str:")
         print(json_str)
         return None
+
+    c = conn.cursor()
+
 
     add_duration_to_lyric_associations(json_data, lyric_data)
 
@@ -265,11 +274,22 @@ def get_color_data2(song_id, replace=False, debug=False, fetch_only=True):
         # Differentiate between "not found" and "added" based on 'fetch_only' flag
         if fetch_only:
             conn.close()  # Close the database connection
-            # this is the case that happens on a live song that is not in the database
+            # this is the case that happens on fa live song that is not in the database
             return ColorDataStatus(status="not_found", data="Song not found in database")
         else:
             song_data = fetch_song_from_db(conn, song_id)
             conn.close()  # Close the database connection
+            if song_data is None: # some error occurred where there is a corrupt entry in the database
+                # Corrupt entry found in database. Delete it.
+                print("Corrupt entry found in database. Deleting it.")
+                # open a connection and delete the entry
+                conn = connect_to_db()
+                c = conn.cursor()
+                c.execute('DELETE FROM mytable WHERE unique_id=?', (song_id,))
+                conn.commit()
+                conn.close()
+                return ColorDataStatus(status="error", data="Song not found in database")
+
             return ColorDataStatus(status="success", data=json.loads(song_data[1]))
 
 

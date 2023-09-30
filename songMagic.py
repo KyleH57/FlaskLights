@@ -211,12 +211,14 @@ class Song:
 
 
 
-            self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, 0, self.time_until_song_end, self.primary_color, self.accent_color, 1))
+
+
+            # Gradient effect
+            # self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, self.current_song_time, self.time_until_song_end, self.primary_color, self.accent_color, 1))
             # self.constellation.add_effect(
             #     ef.FillAllEffect(self.constellation, 0, self.time_until_song_end, (255, 26, 141), 1))
-            # self.constellation.add_effect(
-            #     ef.FillAllEffect(self.constellation, 0, self.time_until_song_end, (255, 0, 128), 1))
-            print("time until song end:", self.time_until_song_end)
+            self.constellation.add_effect(
+                ef.FillAllEffect(self.constellation, 0, self.time_until_song_end, (255, 255, 255), 1))
 
             # in size
             # in hue diff
@@ -246,6 +248,11 @@ class Song:
 
             # print("adding perlin noise effect")
             # self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+            #
+
+            # self.constellation.add_effect(
+            #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
+            #                          perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.HUE_TO_WHITE, {'hue1':0.5, 'hue2':0}))
 
         elif algo_fail: #algo failed, default to perlin noise
 
@@ -268,9 +275,7 @@ class Song:
             print("adding perlin noise effect")
             self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
 
-            # self.constellation.add_effect(
-            #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-            #                          perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
+
 
 
 
