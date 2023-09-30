@@ -627,7 +627,7 @@ class PerlinNoiseEffect(Effect):
         self.beats = beats or []  # Use an empty list if beats is None
         self.boost_beat_parity = boost_beat_parity  # Use 'even', 'odd' or 'both'
         self.BEAT_SPEED_FRACTION = 0.5  # speed boost will last for this fraction of the beat
-        self.BEAT_SPEED_BOOST = 2.75 # speed boost multiplier
+        self.BEAT_SPEED_BOOST = 4 # speed boost multiplier
         self.color_mode = color_mode
         self.color_params = color_params or {}
 

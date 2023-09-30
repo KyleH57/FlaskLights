@@ -13,11 +13,14 @@
     <p>The song id is {{ song_id }}.</p>
     <p>The bpm is {{ song_bpm }}.</p>
     <p>The beat confidence is {{ song_bc }}.</p>
-    <p>The danceability of the song is {{ audio_features.danceability }}.</p>
-    <p>The energy of the song is {{ audio_features.energy }}.</p>
-    <p>The loudness of the song is {{ audio_features.loudness }}.</p>
-    <p>The valence of the song is {{audio_features.valence}}.</p>
 
+    <p>The danceability of the song is {{ audio_features.danceability|default('N/A') }}.</p>
+    <p>The energy of the song is {{ audio_features.energy|default('N/A') }}.</p>
+    <p>The loudness of the song is {{ audio_features.loudness|default('N/A') }}.</p>
+    <p>The valence of the song is {{audio_features.valence|default('N/A')}}.</p>
+
+
+    <button onclick="location.reload();">Refresh</button>
 
 
     <!-- Set dimensions for chart divs -->

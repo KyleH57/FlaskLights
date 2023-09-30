@@ -255,7 +255,7 @@ class Song:
 
             self.constellation.add_effect(
                 ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-                                     perlin_size, perlin_speed * 2, (64, 64), self.beats, 'both', ef.ColorMode.HUE_TO_WHITE, {'hue1':self.primary_hue, 'hue2':0}))
+                                     perlin_size, perlin_speed * 3, (64, 64), self.beats, 'odd', ef.ColorMode.HUE_TO_WHITE, {'hue1':self.primary_hue, 'hue2':0}))
 
         elif algo_fail: #algo failed, default to perlin noise
 
