@@ -123,6 +123,8 @@ class Song:
 
         self.primary_color = [255, 255, 255]
         self.accent_color = None
+        self.primary_hue = None
+        self.accent_hue = None
 
         self.is_special(song_id)
 
@@ -162,6 +164,8 @@ class Song:
 
             self.primary_color = info['primaryColorRGB']
             self.accent_color = info['accentColorRGB']
+            self.primary_hue = colorsys.rgb_to_hsv(self.primary_color[0] / 255, self.primary_color[1] / 255, self.primary_color[2] / 255)[0]
+            self.accent_hue = colorsys.rgb_to_hsv(self.accent_color[0] / 255, self.accent_color[1] / 255, self.accent_color[2] / 255)[0]
             print("Primary color:", self.primary_color)
             print("Accent color:", self.accent_color)
         #
@@ -217,8 +221,7 @@ class Song:
             # self.constellation.add_effect(gradient_test.GradientEffect(self.constellation, self.current_song_time, self.time_until_song_end, self.primary_color, self.accent_color, 1))
             # self.constellation.add_effect(
             #     ef.FillAllEffect(self.constellation, 0, self.time_until_song_end, (255, 26, 141), 1))
-            self.constellation.add_effect(
-                ef.FillAllEffect(self.constellation, 0, self.time_until_song_end, (255, 255, 255), 1))
+
 
             # in size
             # in hue diff
@@ -250,9 +253,9 @@ class Song:
             # self.constellation.add_effect(loudness_perlin.LoudnessPerlin(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1, perlin_size, perlin_speed, (64, 64), self.segments, 'both', ef.ColorMode.INTERPOLATE_HUES, {'hue1':hue1, 'hue2':hue2}))
             #
 
-            # self.constellation.add_effect(
-            #     ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
-            #                          perlin_size, perlin_speed, (64, 64), self.beats, 'both', ef.ColorMode.HUE_TO_WHITE, {'hue1':0.5, 'hue2':0}))
+            self.constellation.add_effect(
+                ef.PerlinNoiseEffect(self.constellation, self.current_song_time, self.time_until_song_end, 1.0, 1,
+                                     perlin_size, perlin_speed * 2, (64, 64), self.beats, 'both', ef.ColorMode.HUE_TO_WHITE, {'hue1':self.primary_hue, 'hue2':0}))
 
         elif algo_fail: #algo failed, default to perlin noise
 

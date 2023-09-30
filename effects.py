@@ -678,6 +678,7 @@ class PerlinNoiseEffect(Effect):
         return self.speed
 
     def get_color(self, hue): # the hue arg is just a number between 0 and 1 and is from the noise array.
+        color_int = [255, 0, 0]
         # It has nothing to do with color
         if self.color_mode == ColorMode.INTERPOLATE_HUES:
             hue1, hue2 = self.color_params['hue1'], self.color_params['hue2']
@@ -685,18 +686,30 @@ class PerlinNoiseEffect(Effect):
             #print('hue old: ', hue)
             # interpolate between hue1 and hue2
             hue = hue1 + (hue2 - hue1) * hue
-
+            # convert HSV to RGB and then to 0-255 range
+            color_rgb = colorsys.hsv_to_rgb(hue, self.saturation, 1)
+            color_int = [int(c * 255) for c in color_rgb]
 
 
         elif self.color_mode == ColorMode.HUE_TO_WHITE:
-            hue1 = self.color_params['hue1']
-            # interpolate between hue1 and white (hue 0, saturation 0)
-            hue = hue1 + (0 - hue1) * hue
-            self.saturation = (1 - hue) * self.saturation
+            hue1, hue2 = self.color_params['hue1'], self.color_params['hue2']
+            hue = color_remap(hue, a=10, b=0.4) # remap from 0-1 to 0-1
+            hue = hue / 2 + 0.5 # map from 0-1 to 0.5-1
+            # convert HSV to RGB and then to 0-255 range
+            color_rgb = colorsys.hsv_to_rgb(hue1, hue, 1)
+            color_int = [int(c * 255) for c in color_rgb]
 
-        # convert HSV to RGB and then to 0-255 range
-        color_rgb = colorsys.hsv_to_rgb(hue, self.saturation, 1)
-        color_int = [int(c * 255) for c in color_rgb]
 
         return color_int
+
+
+def color_remap(x, a=10, b=0.4):
+    """A custom sigmoid function with adjustable center.
+
+    :param x: The input value.
+    :param a: The parameter that adjusts the steepness of the sigmoid.
+    :param b: The parameter that adjusts the center of the sigmoid.
+    :return: The output value between 0 and 1.
+    """
+    return 1 / (1 + np.exp(-a * (x - b)))
 
