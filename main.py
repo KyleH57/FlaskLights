@@ -578,7 +578,6 @@ def add_next_song_to_db(song_id):
         print("database in use")
     elif info.status == "success":
         print("added to database")
-        print(info)
     else:
         print(info.status)
 

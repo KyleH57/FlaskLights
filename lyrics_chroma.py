@@ -254,6 +254,7 @@ def get_color_data2(song_id, replace=False, debug=False, fetch_only=True):
     If the database is in use, it will wait up until the timeout.
     If the timeout is reached, it will return status "error".
     Returns success if song is in the database
+    Returns not_found if song is not in the database and fetch_only is True
     :param song_id:
     :param replace:
     :param debug:

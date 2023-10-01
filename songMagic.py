@@ -128,6 +128,8 @@ class Song:
 
         self.is_special(song_id)
 
+        self.lyrics_mapped = False
+
         # # SOM stuff
         # # create a new array of segments with the timbre data
         # self.X_list = []
@@ -158,6 +160,7 @@ class Song:
         if info.status == "not_found" or info.status == "error":
             print("song not found, failsafe mode")
             algo_fail = True
+            self.lyrics_mapped = False
         elif info.status == "success":
             print("song found, using cached data")
             info = info.data
@@ -168,6 +171,8 @@ class Song:
             self.accent_hue = colorsys.rgb_to_hsv(self.accent_color[0] / 255, self.accent_color[1] / 255, self.accent_color[2] / 255)[0]
             print("Primary color:", self.primary_color)
             print("Accent color:", self.accent_color)
+
+            self.lyrics_mapped = True
         #
         # for association in info['lyricAssociations']:
         #     print("    ", association['startTime'], "-", association['colorRGB'], "-", association['reasoning'])
