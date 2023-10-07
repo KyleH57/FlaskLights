@@ -37,8 +37,6 @@ class PerlinNoiseGenerator:
                 # snosie3 returns a value between -1 and 1, but the vast majority of values are between -0.6 and 0.6
                 noise_array[y][x] = noise_value
 
-
-
         self.z += speed
         return noise_array
 
@@ -57,8 +55,6 @@ class LoudnessPerlin(ef.Effect):
         self.noise_gen = PerlinNoiseGenerator(*noise_dim, scale)
         self.speed = speed  # Store the initial speed
         self.segments = segments
-
-
 
 
         self.noise_dim = noise_dim
@@ -109,11 +105,6 @@ class LoudnessPerlin(ef.Effect):
 
         # print(timbre_loudness_percentiles[current_segment_index])
 
-
-
-
-
-
         self.speed = 0.003 + 0.02 * timbre_loudness_percentiles[current_segment_index] #TODO optimize this
 
         # print(self.speed)
@@ -129,8 +120,6 @@ class LoudnessPerlin(ef.Effect):
             #print('hue old: ', hue)
             # interpolate between hue1 and hue2
             hue = hue1 + (hue2 - hue1) * hue
-
-
 
         elif self.color_mode == ColorMode.HUE_TO_WHITE:
             hue1 = self.color_params['hue1']

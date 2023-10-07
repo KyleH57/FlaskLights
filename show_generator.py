@@ -6,7 +6,7 @@ def generate_show(constellation, song, debug=True):
     # generate a number between 1 and n
     n = 1
     random_number = randint(1, n)
-    random_number = 2
+    random_number = 1
 
     if debug:
         print("Generating show...")

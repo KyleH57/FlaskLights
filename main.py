@@ -45,7 +45,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 
 SPOTIFY_CLIENT_ID = "fdeab218fc904db89d4f1d278f268002"
-
+STATIC_IP = '192.168.0.152'
+SERVER_PORT = 5000
 
 with open("config.cfg", "r") as f:
     lines = f.readlines()
@@ -281,8 +282,6 @@ def index():
 
     #histogram stuff
     timbre_data = [segment["timbre"][0] for segment in audio_analysis_data["segments"]]
-
-
 
     # Create the histogram
     timbre_histogram = go.Histogram(
@@ -521,7 +520,7 @@ def worker(conn, frequency=20.0):
         if song_playing:
             idle_rainbow_playing = False
 
-            song_obj.add_effects_while_running()
+            song_obj.add_effects_while_running() # this is needed to update time and other things
 
             my_constellation.run_effects2(song_obj, debug=False)
 
@@ -540,21 +539,6 @@ def worker(conn, frequency=20.0):
 
 
         wait_for_next_iteration_no_sleep(frequency, start_time)
-
-
-def progress_bar_2(section_progress, pixels, color, bg_color, n, blur_size=3):
-    # Calculate the number of pixels in the section based on the progress and the total number of pixels
-    section_size = int(section_progress * n)
-
-    # Set the color of the pixels in the section
-    for i in range(section_size):
-        if i < section_size - 1:
-            pixels[i] = color
-        elif i == section_size - 1:
-            old_r, old_g, old_b = bg_color
-            new_r, new_g, new_b = color
-            pixels[i] = [int(old_r * 0.5), int(old_g * 0.5), int(old_b * 0.5)]
-
 
 
 def wait_for_next_iteration_no_sleep(frequency, start_time):
@@ -588,5 +572,5 @@ if __name__ == "__main__":
     process = mp.Process(target=worker, args=(child_conn,))
     process.start()
 
-    app.run(host='192.168.0.152', port=5000)
+    app.run(host=STATIC_IP, port=SERVER_PORT)
 
