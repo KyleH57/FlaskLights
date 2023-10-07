@@ -404,8 +404,9 @@ def worker(conn, frequency=20.0):
 
 
     # effects variables
-    last_rainbow_time = time.time()
+    last_idle_effect_time = time.time()
     wave_progress = 0
+    last_idle_effect_time = 0
 
 
     while True:
@@ -518,6 +519,9 @@ def worker(conn, frequency=20.0):
 
 
         if song_playing:
+            # remove all effects
+            my_constellation.remove_all_effects()
+
             idle_rainbow_playing = False
 
             song_obj.add_effects_while_running() # this is needed to update time and other things
@@ -527,13 +531,23 @@ def worker(conn, frequency=20.0):
 
         else: # display a generic rainbow wave if no song is playing
 
+            IDLE_EFFECT_TIME = 10 # 10 minutes
 
-            if idle_rainbow_playing == False:
-                # remove all effects
+            # if it has been more than 5 seconds since the last rainbow wave, add a new one
+            if time.time() - last_idle_effect_time > IDLE_EFFECT_TIME:
+                # generate a random in between 300 and 3000
+                rainbow_wave_length = random.randint(1000, 9000)
+                rainbow_wave_speed = rainbow_wave_length / random.randint(2, 9)
+
+                # # devel only
+                # rainbow_wave_length = 1000
+                # rainbow_wave_speed = 500
+
+                last_idle_effect_time = time.time()
                 my_constellation.remove_all_effects()
+                my_constellation.add_effect(
+                    rainbow_wave_2.RainbowWaveEffect2(my_constellation, time.time(), IDLE_EFFECT_TIME, rainbow_wave_length, rainbow_wave_speed, 1.0))
 
-                my_constellation.add_effect(rainbow_wave_2.RainbowWaveEffect2(my_constellation, time.time(), 72000, 1500, 750, 1.0))
-                idle_rainbow_playing = True
 
             my_constellation.run_effects(time.time())
 
