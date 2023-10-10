@@ -34,6 +34,8 @@ from audioChroma import *
 from Constellation2 import Constellation
 from effects import *
 from effects2 import rainbow_wave_2
+from effects2 import transition_perlin as tp
+from effects2 import loudness_perlin as lp
 from songState import *
 
 import songMagic as sm
@@ -531,22 +533,31 @@ def worker(conn, frequency=20.0):
 
         else: # display a generic rainbow wave if no song is playing
 
-            IDLE_EFFECT_TIME = 10 # 10 minutes
+            IDLE_EFFECT_TIME = 600 # 10 minutes
 
             # if it has been more than 5 seconds since the last rainbow wave, add a new one
             if time.time() - last_idle_effect_time > IDLE_EFFECT_TIME:
-                # generate a random in between 300 and 3000
-                rainbow_wave_length = random.randint(1000, 9000)
-                rainbow_wave_speed = rainbow_wave_length / random.randint(2, 9)
-
-                # # devel only
-                # rainbow_wave_length = 1000
-                # rainbow_wave_speed = 500
 
                 last_idle_effect_time = time.time()
                 my_constellation.remove_all_effects()
-                my_constellation.add_effect(
-                    rainbow_wave_2.RainbowWaveEffect2(my_constellation, time.time(), IDLE_EFFECT_TIME, rainbow_wave_length, rainbow_wave_speed, 1.0))
+
+                idle_pattern_number = random.randint(1, 3)
+
+                if idle_pattern_number == 1:
+                    # generate a random int between 300 and 3000
+                    rainbow_wave_length = random.randint(1000, 9000)
+                    rainbow_wave_speed = rainbow_wave_length / random.randint(2, 9)
+
+
+                    my_constellation.add_effect(
+                        rainbow_wave_2.RainbowWaveEffect2(my_constellation, time.time(), IDLE_EFFECT_TIME, rainbow_wave_length, rainbow_wave_speed, 1.0))
+                elif idle_pattern_number == 2:
+                    # generate a list of random numbers between 0 and 1 that is 3 long
+                    random_hue_list = [random.random(), random.random(), random.random()]
+                    my_constellation.add_effect(tp.TransitionPerlinNoiseEffect(my_constellation, time.time(), IDLE_EFFECT_TIME, 1.0, 1, 65, 0.00375*3, (64, 64),[0.9, 0.5, .1], [time.time()+150, time.time()+300,time.time()+ 450]))
+                elif idle_pattern_number == 3:
+                    my_constellation.add_effect(lp.LoudnessPerlin(my_constellation, time.time(), IDLE_EFFECT_TIME, 1.0, 1, 65, 0.00375*3, (64, 64), None, 'both', ColorMode.INTERPOLATE_HUES, {'hue1': 0, 'hue2': 1}))
+
 
 
             my_constellation.run_effects(time.time())
@@ -585,6 +596,8 @@ if __name__ == "__main__":
     parent_conn, child_conn = mp.Pipe()
     process = mp.Process(target=worker, args=(child_conn,))
     process.start()
+
+
 
     app.run(host=STATIC_IP, port=SERVER_PORT)
 

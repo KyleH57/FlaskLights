@@ -94,21 +94,19 @@ class LoudnessPerlin(ef.Effect):
             led.set_color(color_int)
 
     def get_current_speed(self, current_time):
+        if self.segments is None:
+            return self.speed
+
         curr_seg = ss.get_current_segment(self.segments, current_time)
         timbre_loudness_list = []
         for segment in self.segments:
             timbre_loudness_list.append(segment['timbre'][0])
 
-        timbre_loudness_percentiles = calculate_percentiles(timbre_loudness_list) #TODO optimize this
+        timbre_loudness_percentiles = calculate_percentiles(timbre_loudness_list)  # TODO optimize this
 
         current_segment_index = self.segments.index(curr_seg)
 
-        # print(timbre_loudness_percentiles[current_segment_index])
-
-        self.speed = 0.003 + 0.02 * timbre_loudness_percentiles[current_segment_index] #TODO optimize this
-
-        # print(self.speed)
-
+        self.speed = 0.003 + 0.02 * timbre_loudness_percentiles[current_segment_index]  # TODO optimize this
 
         return self.speed
 

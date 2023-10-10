@@ -539,8 +539,6 @@ class PerlinNoiseGenerator:
                 # snosie3 returns a value between -1 and 1, but the vast majority of values are between -0.6 and 0.6
                 noise_array[y][x] = noise_value
 
-
-
         self.z += speed
         return noise_array
 
